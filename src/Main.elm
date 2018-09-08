@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Api exposing (Game, requestGame, showGame)
+import Api exposing (Game, Player, requestCreatePlayer, requestGame, requestMap, showGame, showPlayer)
 import Browser exposing (Document)
 import Css exposing (..)
 import Html
@@ -8,41 +8,92 @@ import Html.Styled exposing (..)
 import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Encode exposing (Value)
+import Map exposing (..)
+import Pusher exposing (gameStarted)
 
 
 type alias Model =
     { game : Maybe Game
+    , player : Maybe Player
     , message : String
+    , map : Maybe Map
     }
 
 
 type Msg
-    = GetGame
-    | GotGame (Result Http.Error Game)
+    = GotGame (Result Http.Error Game)
+    | GotPlayer (Result Http.Error Player)
+    | GotMapId String
+    | GotMap (Result Http.Error Map)
+
+
+createGame : Cmd Msg
+createGame =
+    Http.send GotGame requestGame
+
+
+joinGame : Game -> Cmd Msg
+joinGame game =
+    Http.send GotPlayer (requestCreatePlayer game)
+
+
+getMap : String -> Cmd Msg
+getMap mapId =
+    Http.send GotMap (requestMap mapId)
 
 
 init : flags -> ( Model, Cmd Msg )
 init _ =
-    ( { game = Nothing, message = "Initialized" }, Cmd.none )
+    ( { game = Nothing
+      , player = Nothing
+      , message = "Initialized"
+      , map = Nothing
+      }
+    , createGame
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GetGame ->
-            ( model, Http.send GotGame requestGame )
-
         GotGame result ->
             case result of
-                Err _ ->
+                Err err ->
                     let
                         _ =
-                            Debug.log "you dun fucked up" ""
+                            Debug.log "failed to create game" err
                     in
                     ( { model | message = "game creation failed" }, Cmd.none )
 
                 Ok game ->
-                    ( { model | game = Just game }, Cmd.none )
+                    ( { model | message = "Game Created", game = Just game }, joinGame game )
+
+        GotPlayer result ->
+            case result of
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "failed to join game" err
+                    in
+                    ( { model | message = "failed to join game" }, Cmd.none )
+
+                Ok player ->
+                    ( { model | message = "Joined game", player = Just player }, Cmd.none )
+
+        GotMapId mapId ->
+            let
+                _ =
+                    Debug.log "got map id" mapId
+            in
+            ( model, getMap mapId )
+
+        GotMap result ->
+            case result of
+                Err _ ->
+                    ( model, Cmd.none )
+
+                Ok map ->
+                    ( { model | map = Just map }, Cmd.none )
 
 
 gameView : Model -> List (Html Msg)
@@ -55,12 +106,18 @@ gameView model =
 
                 Nothing ->
                     "no game"
+
+        playerString =
+            case model.player of
+                Just p ->
+                    showPlayer p
+
+                Nothing ->
+                    "no player"
     in
     [ h1 [] [ text ("Message: " ++ model.message) ]
-    , div []
-        [ text gameString ]
-    , button [ onClick GetGame ]
-        [ text "Get Game" ]
+    , h3 [] [ text gameString ]
+    , h4 [] [ text playerString ]
     ]
 
 
@@ -73,7 +130,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    gameStarted GotMapId
 
 
 main : Program Value Model Msg

@@ -3,8 +3,30 @@
     <body>
         <div id="app"></div>
         <script src="elm.js"></script>
+        <script src="https://js.pusher.com/4.3/pusher.min.js"></script>
         <script>
-            Elm.Main.init(document.querySelector("#app");
+            // Pusher.logToConsole = true;
+            // var pusher = new Pusher('dd888f5a7a55d7eb5059', {
+            //      cluster: 'us2',
+            //      forceTLS: true
+            // });
+
+
+            var app = Elm.Main.init(document.querySelector("#app"));
+
+            app.ports.gameStarted.send('4');
+
+            // app.ports.bindToGame.subscribe(function(gameId) {
+                // var channel = pusher.subscribe(`private-game-${gameId}`);
+                // channel.bind('turn-complete', data => {
+                //      alert(JSON.stringify(data));
+                // });
+                // channel.bind('game-start', data => {
+                //      var mapId = data.mapId;
+                //      alert(mapId);
+                //      app.ports.gameStarted.send(mapId);
+                // });
+            // });
         </script>
     </body>
 </html>
