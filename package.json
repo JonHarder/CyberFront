@@ -4,9 +4,12 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "elm-live": "^3.0.4"
+    "elm-live": "^3.0.4",
+    "gulp": "^3.9.1",
+    "gulp-elm": "^0.8.1"
   },
   "scripts": {
-    "server": "elm-live src/Main.elm --open -- --output=src/elm.js"
+    "build": "gulp",
+    "build-production": "NODE_ENV=production gulp"
   }
 }
