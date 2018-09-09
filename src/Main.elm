@@ -13,13 +13,14 @@ import Pusher exposing (gameStarted, joinGame)
 
 
 type alias PreLobbyData =
-    { message : String, gameLoading : Maybe Game }
+    { apiUrl : String, message : String, gameLoading : Maybe Game }
 
 
 type alias LobbyData =
     { message : String
     , game : Game
     , player : Player
+    , apiUrl : String
     }
 
 
@@ -28,6 +29,7 @@ type alias InGameData =
     , game : Game
     , player : Player
     , map : Map
+    , apiUrl : String
     }
 
 
@@ -44,25 +46,25 @@ type Msg
     | GotMap (Result Http.Error Map)
 
 
-createGame : Cmd Msg
-createGame =
-    Http.send GotGame requestGame
+createGame : String -> Cmd Msg
+createGame apiUrl =
+    Http.send GotGame (requestGame apiUrl)
 
 
-getPlayer : Game -> Cmd Msg
-getPlayer game =
-    Http.send GotPlayer (requestCreatePlayer game)
+getPlayer : String -> Game -> Cmd Msg
+getPlayer apiUrl game =
+    Http.send GotPlayer (requestCreatePlayer apiUrl game)
 
 
-getMap : String -> Cmd Msg
-getMap mapId =
-    Http.send GotMap (requestMap mapId)
+getMap : String -> String -> Cmd Msg
+getMap apiUrl mapId =
+    Http.send GotMap (requestMap apiUrl mapId)
 
 
-init : flags -> ( Model, Cmd Msg )
-init _ =
-    ( PreLobby { message = "Pre lobby", gameLoading = Nothing }
-    , createGame
+init : String -> ( Model, Cmd Msg )
+init apiUrl =
+    ( PreLobby { apiUrl = apiUrl, message = "Pre lobby", gameLoading = Nothing }
+    , createGame apiUrl
     )
 
 
@@ -84,7 +86,7 @@ updatePreLobby msg data =
                             | message = "created game, creating player"
                             , gameLoading = Just game
                         }
-                    , Cmd.batch [ joinGame game, getPlayer game ]
+                    , Cmd.batch [ joinGame game, getPlayer data.apiUrl game ]
                     )
 
         GotPlayer result ->
@@ -99,6 +101,7 @@ updatePreLobby msg data =
                                 { message = "In Lobby. Waiting for more players"
                                 , game = game
                                 , player = player
+                                , apiUrl = data.apiUrl
                                 }
                             , Cmd.none
                             )
@@ -118,7 +121,7 @@ updateLobby msg data =
     in
     case msg of
         GotMapId mapId ->
-            ( model, getMap mapId )
+            ( model, getMap data.apiUrl mapId )
 
         GotMap result ->
             case result of
@@ -135,6 +138,7 @@ updateLobby msg data =
                         , game = data.game
                         , player = data.player
                         , map = map
+                        , apiUrl = data.apiUrl
                         }
                     , Cmd.none
                     )
@@ -222,7 +226,12 @@ subscriptions model =
             Sub.none
 
 
-main : Program Value Model Msg
+type alias Config =
+    { api_url : String
+    }
+
+
+main : Program String Model Msg
 main =
     Browser.document
         { init = init

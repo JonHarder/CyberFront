@@ -1,12 +1,16 @@
+var API_URL = "http://localhost:3000";
 
-// Pusher.logToConsole = true;
+Pusher.logToConsole = true;
 var pusher = new Pusher('dd888f5a7a55d7eb5059', {
      cluster: 'us2',
      forceTLS: true
 });
 
 
-var app = Elm.Main.init(document.querySelector("#app"));
+var app = Elm.Main.init({
+    node: document.querySelector("#app"),
+    flags: API_URL
+});
 
 
 app.ports.bindToGame.subscribe(function(gameId) {

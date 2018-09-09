@@ -63,15 +63,6 @@ showGame (Game game) =
     "Game " ++ id ++ ", current player num: " ++ String.fromInt game.currentPlayerNumber
 
 
-url : String
-url =
-    "http://localhost:3000"
-
-
-
--- "http://192.168.1.152:8888"
-
-
 decodeUuid : Decoder Uuid
 decodeUuid =
     Decode.map Uuid string
@@ -179,20 +170,20 @@ decodeMap =
         |> Decode.map Map
 
 
-requestGame : Http.Request Game
-requestGame =
+requestGame : String -> Http.Request Game
+requestGame apiUrl =
     let
         endpoint =
-            url ++ "/game"
+            apiUrl ++ "/game"
     in
     Http.post endpoint Http.emptyBody decodeGame
 
 
-requestCreatePlayer : Game -> Http.Request Player
-requestCreatePlayer game =
+requestCreatePlayer : String -> Game -> Http.Request Player
+requestCreatePlayer apiUrl game =
     let
         endpoint =
-            url ++ "/player"
+            apiUrl ++ "/player"
 
         payload =
             encodeGame game
@@ -203,10 +194,10 @@ requestCreatePlayer game =
     Http.post endpoint body decodePlayer
 
 
-requestMap : String -> Http.Request Map
-requestMap mapId =
+requestMap : String -> String -> Http.Request Map
+requestMap apiUrl mapId =
     let
         endpoint =
-            url ++ "/map/" ++ mapId
+            apiUrl ++ "/map/" ++ mapId
     in
     Http.get endpoint decodeMap
