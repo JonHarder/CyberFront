@@ -1,21 +1,40 @@
 module Map exposing (..)
 
-import Unit exposing (Unit)
+import Unit exposing (Owner, Unit)
+
+
+type alias TerrainProperties =
+    { walkable : Bool
+    , combatMultiplier : Float
+    }
+
+
+concrete : Terrain
+concrete =
+    Terrain
+        { walkable = True
+        , combatMultiplier = 1.0
+        }
 
 
 type Terrain
-    = Walkable
+    = Terrain TerrainProperties
+
+
+type alias TileInternals =
+    { terrain : Terrain
+    , owner : Owner
+    }
 
 
 type Tile
-    = Tile
-        { terrain : Terrain
-        }
+    = Tile TileInternals
 
 
 type alias MapInternals =
     { tiles : List Tile
-    , units : List (Maybe Unit)
+    , units : List Unit
+    , width : Int
     }
 
 

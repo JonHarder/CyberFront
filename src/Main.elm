@@ -12,12 +12,26 @@ import Map exposing (..)
 import Pusher exposing (gameStarted)
 
 
-type alias Model =
-    { game : Maybe Game
-    , player : Maybe Player
-    , message : String
-    , map : Maybe Map
+type alias PreLobbyData =
+    { message : String, gameLoading : Maybe Game }
+
+
+type alias LobbyData =
+    { message : String
+    , game : Game
+    , player : Player
     }
+
+
+type Model
+    = PreLobby PreLobbyData
+    | Lobby LobbyData
+    | InGame
+        { message : String
+        , game : Game
+        , player : Player
+        , map : Map
+        }
 
 
 type Msg
@@ -32,8 +46,8 @@ createGame =
     Http.send GotGame requestGame
 
 
-joinGame : Game -> Cmd Msg
-joinGame game =
+getPlayer : Game -> Cmd Msg
+getPlayer game =
     Http.send GotPlayer (requestCreatePlayer game)
 
 
@@ -44,47 +58,63 @@ getMap mapId =
 
 init : flags -> ( Model, Cmd Msg )
 init _ =
-    ( { game = Nothing
-      , player = Nothing
-      , message = "Initialized"
-      , map = Nothing
-      }
+    ( PreLobby { message = "Pre lobby", gameLoading = Nothing }
     , createGame
     )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+updatePreLobby : Msg -> PreLobbyData -> ( Model, Cmd Msg )
+updatePreLobby msg data =
+    let
+        model =
+            PreLobby data
+    in
     case msg of
         GotGame result ->
             case result of
                 Err err ->
-                    let
-                        _ =
-                            Debug.log "failed to create game" err
-                    in
-                    ( { model | message = "game creation failed" }, Cmd.none )
+                    ( PreLobby { data | message = "failed to create game" }, Cmd.none )
 
                 Ok game ->
-                    ( { model | message = "Game Created", game = Just game }, joinGame game )
+                    ( PreLobby
+                        { data
+                            | message = "created game, creating player"
+                            , gameLoading = Just game
+                        }
+                    , getPlayer game
+                    )
 
         GotPlayer result ->
             case result of
                 Err err ->
-                    let
-                        _ =
-                            Debug.log "failed to join game" err
-                    in
-                    ( { model | message = "failed to join game" }, Cmd.none )
+                    ( PreLobby { data | message = "failed to join game" }, Cmd.none )
 
                 Ok player ->
-                    ( { model | message = "Joined game", player = Just player }, Cmd.none )
+                    case data.gameLoading of
+                        Just game ->
+                            ( Lobby
+                                { message = "Created player, joining game"
+                                , game = game
+                                , player = player
+                                }
+                            , Cmd.none
+                            )
 
+                        Nothing ->
+                            ( PreLobby { data | message = "no reference to game :(" }, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+updateLobby : Msg -> LobbyData -> ( Model, Cmd Msg )
+updateLobby msg data =
+    let
+        model =
+            Lobby data
+    in
+    case msg of
         GotMapId mapId ->
-            let
-                _ =
-                    Debug.log "got map id" mapId
-            in
             ( model, getMap mapId )
 
         GotMap result ->
@@ -93,32 +123,57 @@ update msg model =
                     ( model, Cmd.none )
 
                 Ok map ->
-                    ( { model | map = Just map }, Cmd.none )
+                    ( InGame
+                        { message = "Game Started!"
+                        , game = data.game
+                        , player = data.player
+                        , map = map
+                        }
+                    , Cmd.none
+                    )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case model of
+        PreLobby data ->
+            updatePreLobby msg data
+
+        Lobby data ->
+            updateLobby msg data
+
+        _ ->
+            ( model, Cmd.none )
+
+
+preLobbyView : PreLobbyData -> List (Html Msg)
+preLobbyView data =
+    [ h1 [] [ text data.message ] ]
+
+
+lobbyView : LobbyData -> List (Html Msg)
+lobbyView data =
+    [ h1 [] [ text "Lobby" ]
+    , h2 [] [ text data.message ]
+    , h3 [] [ text (showGame data.game) ]
+    , h3 [] [ text (showPlayer data.player) ]
+    ]
 
 
 gameView : Model -> List (Html Msg)
 gameView model =
-    let
-        gameString =
-            case model.game of
-                Just g ->
-                    showGame g
+    case model of
+        PreLobby data ->
+            preLobbyView data
 
-                Nothing ->
-                    "no game"
+        Lobby data ->
+            lobbyView data
 
-        playerString =
-            case model.player of
-                Just p ->
-                    showPlayer p
-
-                Nothing ->
-                    "no player"
-    in
-    [ h1 [] [ text ("Message: " ++ model.message) ]
-    , h3 [] [ text gameString ]
-    , h4 [] [ text playerString ]
-    ]
+        _ ->
+            [ h2 [] [ text "game state not implemented yet" ] ]
 
 
 view : Model -> Document Msg
@@ -130,7 +185,12 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    gameStarted GotMapId
+    case model of
+        Lobby _ ->
+            gameStarted GotMapId
+
+        _ ->
+            Sub.none
 
 
 main : Program Value Model Msg

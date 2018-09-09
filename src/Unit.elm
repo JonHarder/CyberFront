@@ -38,13 +38,30 @@ typeDamageModifier t1 t2 =
             1.0
 
 
+type alias Coord =
+    { x : Int, y : Int }
+
+
+type alias PlayerNumber =
+    Int
+
+
+type alias Owner =
+    Maybe PlayerNumber
+
+
+type alias UnitInternals =
+    { attack : Int
+    , defence : Int
+    , health : Int
+    , unitType : UnitType
+    , minRange : Int
+    , maxRange : Int
+    , speed : Int
+    , coord : Maybe Coord
+    , owner : Owner
+    }
+
+
 type Unit
-    = Unit
-        { attack : Int
-        , defence : Int
-        , health : Int
-        , unitType : UnitType
-        , minRange : Int
-        , maxRange : Int
-        , speed : Int
-        }
+    = Unit UnitInternals
