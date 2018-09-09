@@ -1,4 +1,4 @@
-port module Pusher exposing (..)
+port module Pusher exposing (gameStarted, joinGame)
 
 import Api exposing (Game, getGameId)
 
@@ -6,8 +6,9 @@ import Api exposing (Game, getGameId)
 port gameStarted : (String -> msg) -> Sub msg
 
 
-type alias GameId =
-    String
+joinGame : Game -> Cmd msg
+joinGame game =
+    bindToGame <| getGameId game
 
 
-port bindToGame : GameId -> Cmd msg
+port bindToGame : String -> Cmd msg

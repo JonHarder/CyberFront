@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Api exposing (Game, Player, requestCreatePlayer, requestGame, requestMap, showGame, showPlayer)
+import Api exposing (Game, Player, getGameId, requestCreatePlayer, requestGame, requestMap, showGame, showPlayer)
 import Browser exposing (Document)
 import Css exposing (..)
 import Html
@@ -9,7 +9,7 @@ import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Encode exposing (Value)
 import Map exposing (..)
-import Pusher exposing (gameStarted)
+import Pusher exposing (gameStarted, joinGame)
 
 
 type alias PreLobbyData =
@@ -23,15 +23,18 @@ type alias LobbyData =
     }
 
 
+type alias InGameData =
+    { message : String
+    , game : Game
+    , player : Player
+    , map : Map
+    }
+
+
 type Model
     = PreLobby PreLobbyData
     | Lobby LobbyData
-    | InGame
-        { message : String
-        , game : Game
-        , player : Player
-        , map : Map
-        }
+    | InGame InGameData
 
 
 type Msg
@@ -81,7 +84,7 @@ updatePreLobby msg data =
                             | message = "created game, creating player"
                             , gameLoading = Just game
                         }
-                    , getPlayer game
+                    , Cmd.batch [ joinGame game, getPlayer game ]
                     )
 
         GotPlayer result ->
@@ -93,7 +96,7 @@ updatePreLobby msg data =
                     case data.gameLoading of
                         Just game ->
                             ( Lobby
-                                { message = "Created player, joining game"
+                                { message = "In Lobby. Waiting for more players"
                                 , game = game
                                 , player = player
                                 }
@@ -119,7 +122,11 @@ updateLobby msg data =
 
         GotMap result ->
             case result of
-                Err _ ->
+                Err e ->
+                    let
+                        _ =
+                            Debug.log "failed to get map" e
+                    in
                     ( model, Cmd.none )
 
                 Ok map ->
@@ -136,6 +143,11 @@ updateLobby msg data =
             ( model, Cmd.none )
 
 
+updateInGame : Msg -> InGameData -> ( Model, Cmd Msg )
+updateInGame msg data =
+    ( InGame data, Cmd.none )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case model of
@@ -145,8 +157,8 @@ update msg model =
         Lobby data ->
             updateLobby msg data
 
-        _ ->
-            ( model, Cmd.none )
+        InGame data ->
+            updateInGame msg data
 
 
 preLobbyView : PreLobbyData -> List (Html Msg)
@@ -163,6 +175,20 @@ lobbyView data =
     ]
 
 
+viewMap : Map -> Html Msg
+viewMap map =
+    h3 []
+        [ text <| "map width: " ++ String.fromInt (getMapWidth map)
+        ]
+
+
+inGameView : InGameData -> List (Html Msg)
+inGameView data =
+    [ h1 [] [ text "In Game!" ]
+    , viewMap data.map
+    ]
+
+
 gameView : Model -> List (Html Msg)
 gameView model =
     case model of
@@ -172,8 +198,8 @@ gameView model =
         Lobby data ->
             lobbyView data
 
-        _ ->
-            [ h2 [] [ text "game state not implemented yet" ] ]
+        InGame data ->
+            inGameView data
 
 
 view : Model -> Document Msg
@@ -186,6 +212,9 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
+        PreLobby _ ->
+            gameStarted GotMapId
+
         Lobby _ ->
             gameStarted GotMapId
 

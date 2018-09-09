@@ -17,6 +17,11 @@ concrete =
         }
 
 
+getMapWidth : Map -> Int
+getMapWidth (Map map) =
+    map.width
+
+
 type Terrain
     = Terrain TerrainProperties
 

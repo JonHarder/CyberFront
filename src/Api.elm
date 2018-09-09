@@ -65,11 +65,11 @@ showGame (Game game) =
 
 url : String
 url =
-    "http://192.168.1.152:8888"
+    "http://localhost:3000"
 
 
 
--- "http://localhost:3000"
+-- "http://192.168.1.152:8888"
 
 
 decodeUuid : Decoder Uuid
@@ -163,7 +163,7 @@ unitTypeHelper unitType =
         "swords" ->
             Decode.succeed Swords
 
-        "Guns" ->
+        "guns" ->
             Decode.succeed Guns
 
         _ ->
