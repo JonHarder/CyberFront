@@ -19,3 +19,7 @@ yarn build
 ```bash
 yarn build-production
 ```
+
+
+## TODO
+* graphics (maybe [elm/svg](https://package.elm-lang.org/packages/elm/svg/latest)?)
