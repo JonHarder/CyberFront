@@ -1,5 +1,6 @@
-module Api exposing (Game, Player, Uuid, getGameId, requestCreatePlayer, requestGame, requestMap, showGame, showPlayer)
+module Api exposing (Game, Player, Uuid, getGameId, requestCreatePlayer, requestGame, showGame, showPlayer)
 
+import Html.Styled exposing (Html, div, text)
 import Http
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (hardcoded, optional, required)
@@ -18,7 +19,7 @@ type Uuid
 
 type alias GameInternals =
     { id : Uuid
-    , currentPlayerNumber : Int
+    , map : Map
     }
 
 
@@ -36,13 +37,18 @@ type Player
     = Player PlayerInternals
 
 
-showPlayer : Player -> String
+showPlayer : Player -> Html msg
 showPlayer (Player player) =
     let
         (Uuid id) =
             player.id
     in
-    "Player: " ++ id ++ ", num: " ++ String.fromInt player.playerNumber
+    div []
+        [ div []
+            [ text <| "Player: " ++ id ]
+        , div []
+            [ text <| "num: " ++ String.fromInt player.playerNumber ]
+        ]
 
 
 getGameId : Game -> String
@@ -54,13 +60,17 @@ getGameId (Game game) =
     id
 
 
-showGame : Game -> String
+showGame : Game -> Html msg
 showGame (Game game) =
     let
         (Uuid id) =
             game.id
     in
-    "Game " ++ id ++ ", current player num: " ++ String.fromInt game.currentPlayerNumber
+    div []
+        [ div []
+            [ text <| "Game " ++ id ]
+        , showMap game.map
+        ]
 
 
 decodeUuid : Decoder Uuid
@@ -72,7 +82,7 @@ decodeGame : Decoder Game
 decodeGame =
     Decode.succeed GameInternals
         |> required "id" decodeUuid
-        |> required "currentPlayerNumber" Decode.int
+        |> required "map" decodeMap
         |> Decode.map Game
 
 
@@ -165,7 +175,6 @@ decodeMap : Decoder Map
 decodeMap =
     Decode.succeed MapInternals
         |> required "tiles" (Decode.list decodeTile)
-        |> required "units" (Decode.list decodeUnit)
         |> required "width" Decode.int
         |> Decode.map Map
 
@@ -192,12 +201,3 @@ requestCreatePlayer apiUrl game =
             Http.jsonBody payload
     in
     Http.post endpoint body decodePlayer
-
-
-requestMap : String -> String -> Http.Request Map
-requestMap apiUrl mapId =
-    let
-        endpoint =
-            apiUrl ++ "/map/" ++ mapId
-    in
-    Http.get endpoint decodeMap
