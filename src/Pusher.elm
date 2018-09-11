@@ -1,9 +1,9 @@
-port module Pusher exposing (gameStarted, joinGame)
+port module Pusher exposing (joinGame, newTurn)
 
 import Api exposing (Game, getGameId)
 
 
-port gameStarted : (String -> msg) -> Sub msg
+port newTurn : (Int -> msg) -> Sub msg
 
 
 joinGame : Game -> Cmd msg

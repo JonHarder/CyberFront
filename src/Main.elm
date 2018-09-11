@@ -9,7 +9,7 @@ import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Encode exposing (Value)
 import Map exposing (..)
-import Pusher exposing (gameStarted, joinGame)
+import Pusher exposing (joinGame, newTurn)
 
 
 type alias PreLobbyData =
@@ -29,6 +29,7 @@ type alias InGameData =
     , game : Game
     , player : Player
     , apiUrl : String
+    , turnNumber : Int
     }
 
 
@@ -41,6 +42,7 @@ type Model
 type Msg
     = GotGame (Result Http.Error Game)
     | GotPlayer (Result Http.Error Player)
+    | NewTurn Int
 
 
 createGame : String -> Cmd Msg
@@ -101,6 +103,9 @@ updatePreLobby msg data =
                         Nothing ->
                             ( PreLobby { data | message = "no reference to game :(" }, Cmd.none )
 
+        _ ->
+            ( model, Cmd.none )
+
 
 updateLobby : Msg -> LobbyData -> ( Model, Cmd Msg )
 updateLobby msg data =
@@ -108,14 +113,20 @@ updateLobby msg data =
         model =
             Lobby data
     in
-    ( InGame
-        { message = "Game Started!"
-        , game = data.game
-        , player = data.player
-        , apiUrl = data.apiUrl
-        }
-    , Cmd.none
-    )
+    case msg of
+        NewTurn turnNumber ->
+            ( InGame
+                { message = "Game Started!"
+                , game = data.game
+                , player = data.player
+                , turnNumber = turnNumber
+                , apiUrl = data.apiUrl
+                }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 updateInGame : Msg -> InGameData -> ( Model, Cmd Msg )
@@ -159,9 +170,12 @@ inGameView : InGameData -> List (Html Msg)
 inGameView data =
     [ h1 [] [ text "In Game!" ]
     , h2 [] [ text data.message ]
-    , div []
+    , div
+        [ css [ margin (px 30) ]
+        ]
         [ showGame data.game
         , showPlayer data.player
+        , text <| "turn number: " ++ String.fromInt data.turnNumber
         ]
     ]
 
@@ -188,7 +202,12 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    case model of
+        Lobby _ ->
+            newTurn NewTurn
+
+        _ ->
+            Sub.none
 
 
 main : Program String Model Msg

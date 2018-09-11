@@ -19,16 +19,16 @@ app.ports.bindToGame.subscribe(function(gameId) {
     channel.bind('turn-complete', data => {
         alert('turn complete');
     });
-    // channel.bind('game-start', data => {
-    //      var mapId = data.mapId;
-    //      app.ports.gameStarted.send(mapId);
-    // });
+    channel.bind('new-turn', turnNumber => {
+        app.ports.newTurn.send(turnNumber);
+    });
 });
 
+const seconds = 1000;
 
 // DEBUGGING CODE.
 // simulate a game start event
-// setTimeout(() => {
-//     console.log('game starting. using map 4');
-//     app.ports.gameStarted.send('4');
-// }, 3000);
+setTimeout(() => {
+    console.log('game starting. starting turn 0');
+    app.ports.newTurn.send(0);
+}, 3 * seconds);
