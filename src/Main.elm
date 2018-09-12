@@ -10,6 +10,8 @@ import Http
 import Json.Encode exposing (Value)
 import Map exposing (..)
 import Pusher exposing (joinGame, newTurn)
+import Svg
+import Svg.Attributes as SvgAttr
 
 
 type alias PreLobbyData =
@@ -196,7 +198,20 @@ gameView model =
 view : Model -> Document Msg
 view model =
     { title = "CyberWars"
-    , body = List.map toUnstyled <| gameView model
+
+    -- , body = List.map toUnstyled <| gameView model
+    , body =
+        [ toUnstyled <|
+            div
+                [ css
+                    [ marginRight auto
+                    , marginLeft auto
+                    , marginTop (vh 25)
+                    , width (vw 35)
+                    ]
+                ]
+                [ grid { width = 8, height = 5 } ]
+        ]
     }
 
 
@@ -208,6 +223,69 @@ subscriptions model =
 
         _ ->
             Sub.none
+
+
+
+-- main : Program String Model Msg
+
+
+type alias Dimensions =
+    { width : Int
+    , height : Int
+    }
+
+
+type Image
+    = Image
+        { src : String
+        , dimensions : Dimensions
+        }
+
+
+sprite : Image -> Html msg
+sprite (Image data) =
+    let
+        { width, height } =
+            data.dimensions
+    in
+    fromUnstyled <|
+        Svg.svg
+            [ SvgAttr.width (String.fromInt width)
+            , SvgAttr.height (String.fromInt height)
+            , SvgAttr.viewBox <| "0 0 " ++ String.fromInt width ++ " " ++ String.fromInt height
+            ]
+            [ Svg.image
+                [ SvgAttr.xlinkHref data.src ]
+                []
+            ]
+
+
+test32Image : Image
+test32Image =
+    Image
+        { src = "http://www.placepuppy.net/64/64"
+        , dimensions = { width = 64, height = 64 }
+        }
+
+
+grid : Dimensions -> Html msg
+grid { width, height } =
+    let
+        row =
+            div [ css [ displayFlex ] ]
+                (List.repeat width <|
+                    div
+                        [ css
+                            [ margin (px 0)
+                            , marginBottom (px -6)
+                            ]
+                        ]
+                        [ sprite test32Image ]
+                )
+    in
+    div
+        []
+        (List.repeat height row)
 
 
 main : Program String Model Msg
