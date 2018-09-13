@@ -4,7 +4,6 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "elm-live": "^3.0.4",
     "gulp": "^3.9.1",
     "gulp-elm": "^0.8.1"
   },
