@@ -203,30 +203,29 @@ view model =
             , height = 480
             }
 
+        image =
+            { src = "http://www.placepuppy.net/64/64"
+            , dimensions =
+                { width = 64
+                , height = 64
+                }
+            }
+
+        tileWidth =
+            64
+
         sprites =
             [ Sprite
-                { image =
-                    { src = "http://www.placepuppy.net/64/64"
-                    , dimensions = { width = 64, height = 64 }
-                    }
-                , coord =
-                    { x = 0, y = 0 }
+                { image = image
+                , coord = { x = 0 * tileWidth, y = 0 * tileWidth }
                 }
             , Sprite
-                { image =
-                    { src = "http://www.placepuppy.net/64/64"
-                    , dimensions = { width = 64, height = 64 }
-                    }
-                , coord =
-                    { x = 64, y = 0 }
+                { image = image
+                , coord = { x = 1 * tileWidth, y = 0 * tileWidth }
                 }
             , Sprite
-                { image =
-                    { src = "http://www.placepuppy.net/64/64"
-                    , dimensions = { width = 64, height = 64 }
-                    }
-                , coord =
-                    { x = 64, y = 128 }
+                { image = image
+                , coord = { x = 1 * tileWidth, y = 2 * tileWidth }
                 }
             ]
     in
