@@ -197,20 +197,45 @@ gameView model =
 
 view : Model -> Document Msg
 view model =
+    let
+        gridDimensions =
+            { width = 640
+            , height = 480
+            }
+
+        sprites =
+            [ Sprite
+                { image =
+                    { src = "http://www.placepuppy.net/64/64"
+                    , dimensions = { width = 64, height = 64 }
+                    }
+                , coord =
+                    { x = 0, y = 0 }
+                }
+            , Sprite
+                { image =
+                    { src = "http://www.placepuppy.net/64/64"
+                    , dimensions = { width = 64, height = 64 }
+                    }
+                , coord =
+                    { x = 64, y = 0 }
+                }
+            , Sprite
+                { image =
+                    { src = "http://www.placepuppy.net/64/64"
+                    , dimensions = { width = 64, height = 64 }
+                    }
+                , coord =
+                    { x = 64, y = 128 }
+                }
+            ]
+    in
     { title = "CyberWars"
 
     -- , body = List.map toUnstyled <| gameView model
     , body =
         [ toUnstyled <|
-            div
-                [ css
-                    [ marginRight auto
-                    , marginLeft auto
-                    , marginTop (vh 25)
-                    , width (vw 35)
-                    ]
-                ]
-                [ grid { width = 8, height = 5 } ]
+            grid gridDimensions sprites
         ]
     }
 
@@ -229,63 +254,63 @@ subscriptions model =
 -- main : Program String Model Msg
 
 
+type alias Image =
+    { src : String
+    , dimensions : Dimensions
+    }
+
+
 type alias Dimensions =
     { width : Int
     , height : Int
     }
 
 
-type Image
-    = Image
-        { src : String
-        , dimensions : Dimensions
+type alias Coord =
+    { x : Int
+    , y : Int
+    }
+
+
+type Sprite
+    = Sprite
+        { image : Image
+        , coord : Coord
         }
 
 
-sprite : Image -> Html msg
-sprite (Image data) =
+sprite : Sprite -> Svg.Svg msg
+sprite (Sprite { image, coord }) =
+    Svg.image
+        [ SvgAttr.x <| String.fromInt coord.x
+        , SvgAttr.y <| String.fromInt coord.y
+        , SvgAttr.width <| String.fromInt image.dimensions.width
+        , SvgAttr.height <| String.fromInt image.dimensions.height
+        , SvgAttr.xlinkHref image.src
+        ]
+        []
+
+
+grid : Dimensions -> List Sprite -> Html msg
+grid dimensions sprites =
     let
-        { width, height } =
-            data.dimensions
+        background =
+            Svg.rect
+                [ SvgAttr.x "0"
+                , SvgAttr.y "0"
+                , SvgAttr.width <| String.fromInt dimensions.width
+                , SvgAttr.height <| String.fromInt dimensions.height
+                , SvgAttr.fill "#8d8d8d"
+                ]
+                []
     in
     fromUnstyled <|
         Svg.svg
-            [ SvgAttr.width (String.fromInt width)
-            , SvgAttr.height (String.fromInt height)
-            , SvgAttr.viewBox <| "0 0 " ++ String.fromInt width ++ " " ++ String.fromInt height
+            [ SvgAttr.width <| String.fromInt dimensions.width
+            , SvgAttr.height <| String.fromInt dimensions.height
+            , SvgAttr.viewBox <| "0 0 " ++ String.fromInt dimensions.width ++ " " ++ String.fromInt dimensions.height
             ]
-            [ Svg.image
-                [ SvgAttr.xlinkHref data.src ]
-                []
-            ]
-
-
-test32Image : Image
-test32Image =
-    Image
-        { src = "http://www.placepuppy.net/64/64"
-        , dimensions = { width = 64, height = 64 }
-        }
-
-
-grid : Dimensions -> Html msg
-grid { width, height } =
-    let
-        row =
-            div [ css [ displayFlex ] ]
-                (List.repeat width <|
-                    div
-                        [ css
-                            [ margin (px 0)
-                            , marginBottom (px -6)
-                            ]
-                        ]
-                        [ sprite test32Image ]
-                )
-    in
-    div
-        []
-        (List.repeat height row)
+            (background :: List.map sprite sprites)
 
 
 main : Program String Model Msg
