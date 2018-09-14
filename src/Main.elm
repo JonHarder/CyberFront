@@ -4,6 +4,7 @@ import Api exposing (requestCreatePlayer, requestGame)
 import Browser exposing (Document)
 import Css exposing (..)
 import Game exposing (Game, showGame)
+import Graphics exposing (..)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
@@ -12,8 +13,6 @@ import Json.Encode exposing (Value)
 import Map exposing (..)
 import Player exposing (Player, showPlayer)
 import Pusher exposing (joinGame, newTurn)
-import Svg
-import Svg.Attributes as SvgAttr
 import Types exposing (Coord, Dimensions)
 
 
@@ -250,57 +249,6 @@ subscriptions model =
 
         _ ->
             Sub.none
-
-
-
--- main : Program String Model Msg
-
-
-type alias Image =
-    { src : String
-    , dimensions : Dimensions
-    }
-
-
-type Sprite
-    = Sprite
-        { image : Image
-        , coord : Coord
-        }
-
-
-sprite : Sprite -> Svg.Svg msg
-sprite (Sprite { image, coord }) =
-    Svg.image
-        [ SvgAttr.x <| String.fromInt coord.x
-        , SvgAttr.y <| String.fromInt coord.y
-        , SvgAttr.width <| String.fromInt image.dimensions.width
-        , SvgAttr.height <| String.fromInt image.dimensions.height
-        , SvgAttr.xlinkHref image.src
-        ]
-        []
-
-
-grid : Dimensions -> List Sprite -> Html msg
-grid dimensions sprites =
-    let
-        background =
-            Svg.rect
-                [ SvgAttr.x "0"
-                , SvgAttr.y "0"
-                , SvgAttr.width <| String.fromInt dimensions.width
-                , SvgAttr.height <| String.fromInt dimensions.height
-                , SvgAttr.fill "#8d8d8d"
-                ]
-                []
-    in
-    fromUnstyled <|
-        Svg.svg
-            [ SvgAttr.width <| String.fromInt dimensions.width
-            , SvgAttr.height <| String.fromInt dimensions.height
-            , SvgAttr.viewBox <| "0 0 " ++ String.fromInt dimensions.width ++ " " ++ String.fromInt dimensions.height
-            ]
-            (background :: List.map sprite sprites)
 
 
 main : Program String Model Msg
