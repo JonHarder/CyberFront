@@ -1,4 +1,16 @@
-module Unit exposing (..)
+module Unit exposing (Unit, decodeUnits)
+
+import Json.Decode as Decode exposing (Decoder, string)
+import Json.Decode.Pipeline exposing (required)
+import Types
+    exposing
+        ( Coord
+        , Owner
+        , Uuid
+        , decodeCoord
+        , decodeOwner
+        , decodeUuid
+        )
 
 
 type UnitType
@@ -38,20 +50,9 @@ typeDamageModifier t1 t2 =
             1.0
 
 
-type alias Coord =
-    { x : Int, y : Int }
-
-
-type alias PlayerNumber =
-    Int
-
-
-type alias Owner =
-    Maybe PlayerNumber
-
-
 type alias UnitInternals =
-    { attack : Int
+    { id : Uuid
+    , attack : Int
     , defence : Int
     , health : Int
     , unitType : UnitType
@@ -65,3 +66,40 @@ type alias UnitInternals =
 
 type Unit
     = Unit UnitInternals
+
+
+decodeUnit : Decoder Unit
+decodeUnit =
+    Decode.succeed UnitInternals
+        |> required "id" decodeUuid
+        |> required "attack" Decode.int
+        |> required "defense" Decode.int
+        |> required "health" Decode.int
+        |> required "unitType" (Decode.string |> Decode.andThen unitTypeHelper)
+        |> required "minRange" Decode.int
+        |> required "maxRange" Decode.int
+        |> required "speed" Decode.int
+        |> required "coordinate" (Decode.nullable decodeCoord)
+        |> required "owner" (Decode.int |> Decode.andThen decodeOwner)
+        |> Decode.map Unit
+
+
+decodeUnits : Decoder (List Unit)
+decodeUnits =
+    Decode.list decodeUnit
+
+
+unitTypeHelper : String -> Decoder UnitType
+unitTypeHelper unitType =
+    case unitType of
+        "magic" ->
+            Decode.succeed Magic
+
+        "swords" ->
+            Decode.succeed Swords
+
+        "guns" ->
+            Decode.succeed Guns
+
+        _ ->
+            Decode.fail <| "Trying to decode a unit type, but type: " ++ unitType ++ " is not supported."

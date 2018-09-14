@@ -1,7 +1,10 @@
-module Map exposing (..)
+module Map exposing (Map, decodeMap, showMap)
 
 import Html.Styled exposing (Html, div, li, text, ul)
-import Unit exposing (Owner, Unit)
+import Json.Decode as Decode exposing (Decoder, string)
+import Json.Decode.Pipeline exposing (optional, required)
+import Types exposing (Owner, decodeOwner)
+import Unit exposing (Unit)
 
 
 type alias TerrainProperties =
@@ -9,6 +12,30 @@ type alias TerrainProperties =
     , combatMultiplier : Float
     , description : String
     }
+
+
+type Terrain
+    = Terrain TerrainProperties
+
+
+type alias TileInternals =
+    { terrain : Terrain
+    , owner : Owner
+    }
+
+
+type Tile
+    = Tile TileInternals
+
+
+type alias MapInternals =
+    { tiles : List Tile
+    , width : Int
+    }
+
+
+type Map
+    = Map MapInternals
 
 
 concrete : Terrain
@@ -65,25 +92,27 @@ showMap map =
         ]
 
 
-type Terrain
-    = Terrain TerrainProperties
+decodeMap : Decoder Map
+decodeMap =
+    Decode.succeed MapInternals
+        |> required "tiles" (Decode.list decodeTile)
+        |> required "width" Decode.int
+        |> Decode.map Map
 
 
-type alias TileInternals =
-    { terrain : Terrain
-    , owner : Owner
-    }
+decodeTile : Decoder Tile
+decodeTile =
+    Decode.succeed TileInternals
+        |> required "type" (Decode.string |> Decode.andThen tileHelper)
+        |> required "owner" (Decode.int |> Decode.andThen decodeOwner)
+        |> Decode.map Tile
 
 
-type Tile
-    = Tile TileInternals
+tileHelper : String -> Decoder Terrain
+tileHelper terrainType =
+    case terrainType of
+        "concrete" ->
+            Decode.succeed concrete
 
-
-type alias MapInternals =
-    { tiles : List Tile
-    , width : Int
-    }
-
-
-type Map
-    = Map MapInternals
+        _ ->
+            Decode.fail <| "Trying to decode a terrain type, but type: " ++ terrainType ++ " is not supported."
