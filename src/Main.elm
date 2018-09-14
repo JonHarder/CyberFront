@@ -1,17 +1,20 @@
 module Main exposing (..)
 
-import Api exposing (Game, Player, getGameId, requestCreatePlayer, requestGame, showGame, showPlayer)
+import Api exposing (requestCreatePlayer, requestGame)
 import Browser exposing (Document)
 import Css exposing (..)
+import Game exposing (Game, showGame)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Encode exposing (Value)
 import Map exposing (..)
+import Player exposing (Player, showPlayer)
 import Pusher exposing (joinGame, newTurn)
 import Svg
 import Svg.Attributes as SvgAttr
+import Types exposing (Coord, Dimensions)
 
 
 type alias PreLobbyData =
@@ -256,18 +259,6 @@ subscriptions model =
 type alias Image =
     { src : String
     , dimensions : Dimensions
-    }
-
-
-type alias Dimensions =
-    { width : Int
-    , height : Int
-    }
-
-
-type alias Coord =
-    { x : Int
-    , y : Int
     }
 
 
