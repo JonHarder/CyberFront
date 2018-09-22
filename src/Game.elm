@@ -4,7 +4,7 @@ import Html.Styled exposing (Html, div, text)
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
-import Map exposing (Map, decodeMap, showMap)
+import Map exposing (Map, decodeMap, viewMap)
 import Types exposing (Uuid, decodeUuid, uuidToString)
 
 
@@ -27,7 +27,7 @@ showGame (Game game) =
     div []
         [ div []
             [ text <| "Game " ++ uuidToString id ]
-        , showMap game.map
+        , viewMap game.map
         ]
 
 

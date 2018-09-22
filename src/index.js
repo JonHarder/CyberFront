@@ -19,8 +19,8 @@ app.ports.bindToGame.subscribe(function(gameId) {
     channel.bind('turn-complete', data => {
         alert('turn complete');
     });
-    channel.bind('new-turn', turnNumber => {
-        app.ports.newTurn.send(turnNumber);
+    channel.bind('turn-start', turnData => {
+        app.ports.newTurn.send(turnData);
     });
 });
 
@@ -30,5 +30,14 @@ const seconds = 1000;
 // simulate a game start event
 setTimeout(() => {
     console.log('game starting. starting turn 0');
-    app.ports.newTurn.send(0);
-}, 3 * seconds);
+    app.ports.newTurn.send(
+        { playerNumber: 1 }
+    );
+}, 12 * seconds);
+
+setTimeout(() => {
+    console.log('game starting. starting turn 0');
+    app.ports.newTurn.send(
+        { playerNumber: 2 }
+    );
+}, 20 * seconds);

@@ -1,5 +1,6 @@
-module Map exposing (Map, decodeMap, showMap)
+module Map exposing (Map, decodeMap, viewMap)
 
+import Graphics exposing (..)
 import Html.Styled exposing (Html, div, li, text, ul)
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (optional, required)
@@ -90,6 +91,18 @@ showMap map =
         , ul []
             (List.map showTile data.tiles)
         ]
+
+
+viewMap : Map -> Html msg
+viewMap map =
+    let
+        dimensions =
+            { width = 640, height = 480 }
+
+        sprites =
+            []
+    in
+    grid dimensions []
 
 
 decodeMap : Decoder Map

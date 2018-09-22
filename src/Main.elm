@@ -12,19 +12,26 @@ import Http
 import Json.Encode exposing (Value)
 import Map exposing (..)
 import Player exposing (Player, showPlayer)
-import Pusher exposing (joinGame, newTurn)
+import Pusher exposing (Turn, joinGame, makeTurn, newTurn, turnNumber)
 import Types exposing (Coord, Dimensions)
 
 
 type alias PreLobbyData =
-    { apiUrl : String, message : String, gameLoading : Maybe Game }
+    { apiUrl : String, message : String }
 
 
 type alias LobbyData =
     { message : String
     , game : Game
-    , player : Player
     , apiUrl : String
+    }
+
+
+type alias LobbyWithPlayerData =
+    { apiUrl : String
+    , game : Game
+    , player : Player
+    , message : String
     }
 
 
@@ -33,20 +40,21 @@ type alias InGameData =
     , game : Game
     , player : Player
     , apiUrl : String
-    , turnNumber : Int
+    , turn : Turn
     }
 
 
 type Model
     = PreLobby PreLobbyData
     | Lobby LobbyData
+    | LobbyWithPlayer LobbyWithPlayerData
     | InGame InGameData
 
 
 type Msg
     = GotGame (Result Http.Error Game)
     | GotPlayer (Result Http.Error Player)
-    | NewTurn Int
+    | NewTurn (Maybe Turn)
 
 
 createGame : String -> Cmd Msg
@@ -61,7 +69,7 @@ getPlayer apiUrl game =
 
 init : String -> ( Model, Cmd Msg )
 init apiUrl =
-    ( PreLobby { apiUrl = apiUrl, message = "Pre lobby", gameLoading = Nothing }
+    ( PreLobby { apiUrl = apiUrl, message = "Pre lobby" }
     , createGame apiUrl
     )
 
@@ -79,33 +87,13 @@ updatePreLobby msg data =
                     ( PreLobby { data | message = "failed to create game" }, Cmd.none )
 
                 Ok game ->
-                    ( PreLobby
-                        { data
-                            | message = "created game, creating player"
-                            , gameLoading = Just game
+                    ( Lobby
+                        { message = "created game, joining lobby..."
+                        , game = game
+                        , apiUrl = data.apiUrl
                         }
                     , Cmd.batch [ joinGame game, getPlayer data.apiUrl game ]
                     )
-
-        GotPlayer result ->
-            case result of
-                Err err ->
-                    ( PreLobby { data | message = "failed to join game" }, Cmd.none )
-
-                Ok player ->
-                    case data.gameLoading of
-                        Just game ->
-                            ( Lobby
-                                { message = "In Lobby. Waiting for more players"
-                                , game = game
-                                , player = player
-                                , apiUrl = data.apiUrl
-                                }
-                            , Cmd.none
-                            )
-
-                        Nothing ->
-                            ( PreLobby { data | message = "no reference to game :(" }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -118,16 +106,50 @@ updateLobby msg data =
             Lobby data
     in
     case msg of
-        NewTurn turnNumber ->
-            ( InGame
-                { message = "Game Started!"
-                , game = data.game
-                , player = data.player
-                , turnNumber = turnNumber
-                , apiUrl = data.apiUrl
-                }
-            , Cmd.none
-            )
+        GotPlayer result ->
+            case result of
+                Err _ ->
+                    ( Lobby
+                        { data | message = "failed to create a player" }
+                    , Cmd.none
+                    )
+
+                Ok player ->
+                    ( LobbyWithPlayer
+                        { apiUrl = data.apiUrl
+                        , game = data.game
+                        , player = player
+                        , message = "Created player!"
+                        }
+                    , Cmd.none
+                    )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+updateLobbyWithPlayer : Msg -> LobbyWithPlayerData -> ( Model, Cmd Msg )
+updateLobbyWithPlayer msg data =
+    let
+        model =
+            LobbyWithPlayer data
+    in
+    case msg of
+        NewTurn turnData ->
+            case turnData of
+                Just turn ->
+                    ( InGame
+                        { message = "Game started! Turn: " ++ String.fromInt (turnNumber turn)
+                        , player = data.player
+                        , game = data.game
+                        , apiUrl = data.apiUrl
+                        , turn = turn
+                        }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( LobbyWithPlayer { data | message = "failed to parse turn" }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -135,7 +157,24 @@ updateLobby msg data =
 
 updateInGame : Msg -> InGameData -> ( Model, Cmd Msg )
 updateInGame msg data =
-    ( InGame data, Cmd.none )
+    let
+        model =
+            InGame data
+    in
+    case msg of
+        NewTurn turnData ->
+            case turnData of
+                Just turn ->
+                    ( InGame
+                        { data | message = "Turn: " ++ String.fromInt (turnNumber turn) }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -146,6 +185,9 @@ update msg model =
 
         Lobby data ->
             updateLobby msg data
+
+        LobbyWithPlayer data ->
+            updateLobbyWithPlayer msg data
 
         InGame data ->
             updateInGame msg data
@@ -159,6 +201,17 @@ preLobbyView data =
 lobbyView : LobbyData -> List (Html Msg)
 lobbyView data =
     [ h1 [] [ text "Lobby" ]
+    , h2 [] [ text data.message ]
+    , div
+        [ css [ margin (px 30) ]
+        ]
+        [ showGame data.game ]
+    ]
+
+
+lobbyWithPlayerView : LobbyWithPlayerData -> List (Html Msg)
+lobbyWithPlayerView data =
+    [ h1 [] [ text "Lobby...with a player" ]
     , h2 [] [ text data.message ]
     , div
         [ css [ margin (px 30) ]
@@ -179,7 +232,6 @@ inGameView data =
         ]
         [ showGame data.game
         , showPlayer data.player
-        , text <| "turn number: " ++ String.fromInt data.turnNumber
         ]
     ]
 
@@ -192,6 +244,9 @@ gameView model =
 
         Lobby data ->
             lobbyView data
+
+        LobbyWithPlayer data ->
+            lobbyWithPlayerView data
 
         InGame data ->
             inGameView data
@@ -232,20 +287,18 @@ view model =
             ]
     in
     { title = "CyberWars"
-
-    -- , body = List.map toUnstyled <| gameView model
-    , body =
-        [ toUnstyled <|
-            grid gridDimensions sprites
-        ]
+    , body = List.map toUnstyled <| gameView model
     }
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
-        Lobby _ ->
-            newTurn NewTurn
+        LobbyWithPlayer _ ->
+            newTurn (makeTurn NewTurn)
+
+        InGame _ ->
+            newTurn (makeTurn NewTurn)
 
         _ ->
             Sub.none
