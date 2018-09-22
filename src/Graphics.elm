@@ -34,16 +34,6 @@ sprite (Sprite { image, coord }) =
 grid : Dimensions -> List Sprite -> Html msg
 grid dimensions sprites =
     let
-        background =
-            Svg.rect
-                [ x "0"
-                , y "0"
-                , width <| String.fromInt dimensions.width
-                , height <| String.fromInt dimensions.height
-                , fill "#8d8d8d"
-                ]
-                []
-
         viewBoxString =
             "0 0 "
                 ++ String.fromInt dimensions.width
@@ -56,4 +46,4 @@ grid dimensions sprites =
             , height <| String.fromInt dimensions.height
             , viewBox viewBoxString
             ]
-            (background :: List.map sprite sprites)
+            (List.map sprite sprites)

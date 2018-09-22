@@ -94,8 +94,11 @@ showMap map =
 
 
 viewMap : Map -> Html msg
-viewMap map =
+viewMap (Map data) =
     let
+        height =
+            List.length data.tiles // data.width
+
         dimensions =
             { width = 640, height = 480 }
 
