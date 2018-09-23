@@ -24,5 +24,6 @@ yarn build-production
 ## TODO
 * ~graphics (maybe [elm/svg](https://package.elm-lang.org/packages/elm/svg/latest)?)~
 * Animations
-* Display Board using map and units
+* ~Display Board using map~
+* Display units
 * map ui (select/move units)
