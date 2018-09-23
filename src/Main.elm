@@ -10,8 +10,9 @@ import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Encode exposing (Value)
 import Map exposing (..)
-import Player exposing (Player, showPlayer)
-import Pusher exposing (Turn, joinGame, makeTurn, newTurn, turnNumber)
+import Player exposing (Player, showPlayer, yourTurn)
+import Pusher exposing (joinGame, newTurn)
+import Turn exposing (turnEvent)
 import Types exposing (Coord, Dimensions)
 
 
@@ -41,7 +42,7 @@ type alias InGameData =
     , message : String
     , game : Game
     , player : Player
-    , turn : Turn
+    , playerNumber : Int
     }
 
 
@@ -55,7 +56,7 @@ type Model
 type Msg
     = GotGame (Result Http.Error Game)
     | GotPlayer (Result Http.Error Player)
-    | NewTurn (Maybe Turn)
+    | NewTurn (Maybe Int)
 
 
 getPlayer : String -> Game -> Cmd Msg
@@ -133,13 +134,13 @@ updateLobbyWithPlayer msg data =
     case msg of
         NewTurn turnData ->
             case turnData of
-                Just turn ->
+                Just playerNumber ->
                     ( InGame
-                        { message = "Game started! Turn: " ++ String.fromInt (turnNumber turn)
+                        { message = "Game started! It's Player " ++ String.fromInt playerNumber ++ "s turn"
                         , player = data.player
                         , game = data.game
                         , apiUrl = data.apiUrl
-                        , turn = turn
+                        , playerNumber = playerNumber
                         }
                     , Cmd.none
                     )
@@ -160,9 +161,12 @@ updateInGame msg data =
     case msg of
         NewTurn turnData ->
             case turnData of
-                Just turn ->
+                Just playerNumber ->
                     ( InGame
-                        { data | message = "Turn: " ++ String.fromInt (turnNumber turn) }
+                        { data
+                            | message = "Player " ++ String.fromInt playerNumber ++ "s turn"
+                            , playerNumber = playerNumber
+                        }
                     , Cmd.none
                     )
 
@@ -220,6 +224,14 @@ inGameView : InGameData -> List (Html Msg)
 inGameView data =
     [ h1 [] [ text "In Game!" ]
     , h2 [] [ text data.message ]
+    , h2 []
+        [ text <|
+            if yourTurn data.player data.playerNumber then
+                "Your Turn"
+
+            else
+                "Not your turn"
+        ]
     , div
         [ css [ margin (px 30) ]
         ]
@@ -254,10 +266,10 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
         LobbyWithPlayer _ ->
-            newTurn (makeTurn NewTurn)
+            newTurn (turnEvent NewTurn)
 
         InGame _ ->
-            newTurn (makeTurn NewTurn)
+            newTurn (turnEvent NewTurn)
 
         _ ->
             Sub.none

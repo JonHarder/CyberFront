@@ -57,10 +57,13 @@ getMapDimensions (Map data) =
 viewMap : Map -> Html msg
 viewMap map =
     let
-        tiles =
+        sprites =
             mapToSprites map
+
+        dimensions =
+            getMapDimensions map
     in
-    fromUnstyled <| render (getMapDimensions map) tiles
+    fromUnstyled <| render dimensions sprites
 
 
 decodeMap : Decoder Map

@@ -1,7 +1,9 @@
-module Turn exposing (Turn, decodeTurn)
+module Turn exposing (Turn, startTurn, turnEvent)
 
-import Json.Decode as Decode exposing (Decoder)
+import Http
+import Json.Decode as Decode exposing (Decoder, Value, decodeValue, int)
 import Json.Decode.Pipeline exposing (required)
+import Player exposing (Player, encodePlayer)
 import Types exposing (Uuid, decodeUuid)
 
 
@@ -18,6 +20,41 @@ type alias TurnInternals =
 
 type Turn
     = Turn TurnInternals
+
+
+type alias TurnEvent =
+    { playerNumber : Int }
+
+
+decodeTurnEvent : Decoder TurnEvent
+decodeTurnEvent =
+    Decode.succeed TurnEvent
+        |> required "playerNumber" int
+
+
+turnEvent : (Maybe Int -> msg) -> Value -> msg
+turnEvent makeMsg value =
+    case decodeValue decodeTurnEvent value of
+        Ok turnData ->
+            makeMsg <| Just turnData.playerNumber
+
+        _ ->
+            makeMsg Nothing
+
+
+startTurn : String -> Player -> (Result Http.Error Turn -> msg) -> Cmd msg
+startTurn apiUrl player turnMsg =
+    let
+        endpoint =
+            apiUrl ++ "/turns"
+
+        body =
+            Http.jsonBody <| encodePlayer player
+
+        startTurnRequest =
+            Http.post endpoint body decodeTurn
+    in
+    Http.send turnMsg startTurnRequest
 
 
 decodeStatus : Decoder TurnStatus

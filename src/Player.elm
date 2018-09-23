@@ -1,4 +1,9 @@
-module Player exposing (Player, decodePlayer, encodePlayer, getPlayerId, getPlayerNumber, showPlayer)
+module Player
+    exposing
+        ( Player
+        , showPlayer
+        , yourTurn
+        )
 
 import Html.Styled exposing (Html, div, text)
 import Json.Decode as Decode exposing (Decoder, string)
@@ -15,6 +20,15 @@ type alias PlayerInternals =
 
 type Player
     = Player PlayerInternals
+
+
+type alias PlayerNumber =
+    Int
+
+
+yourTurn : Player -> PlayerNumber -> Bool
+yourTurn (Player p) playerNum =
+    p.playerNumber == playerNum
 
 
 getPlayerId : Player -> Uuid

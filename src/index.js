@@ -17,6 +17,7 @@ var newTurn = turnData => {
     app.ports.newTurn.send(turnData);
 };
 
+
 app.ports.bindToGame.subscribe(function(gameId) {
     console.log('bound to game');
     var channel = pusher.subscribe(`game-${gameId}`);
@@ -35,7 +36,14 @@ setTimeout(() => {
     newTurn({playerNumber: 1});
 }, 5 * seconds);
 
+
 setTimeout(() => {
     console.log('new turn. player 2 turn');
     newTurn({playerNumber: 2});
 }, 10 * seconds);
+
+
+setTimeout(() => {
+    console.log('new turn. player 1 turn');
+    newTurn({playerNumber: 1});
+}, 15 * seconds);
