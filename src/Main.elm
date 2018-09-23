@@ -1,9 +1,9 @@
 module Main exposing (..)
 
-import Api exposing (requestCreatePlayer, requestGame)
+import Api exposing (requestCreatePlayer)
 import Browser exposing (Document)
 import Css exposing (..)
-import Game exposing (Game, showGame)
+import Game exposing (Game, createGame, showGame)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
@@ -16,29 +16,31 @@ import Types exposing (Coord, Dimensions)
 
 
 type alias PreLobbyData =
-    { apiUrl : String, message : String }
+    { apiUrl : String
+    , message : String
+    }
 
 
 type alias LobbyData =
-    { message : String
+    { apiUrl : String
+    , message : String
     , game : Game
-    , apiUrl : String
     }
 
 
 type alias LobbyWithPlayerData =
     { apiUrl : String
+    , message : String
     , game : Game
     , player : Player
-    , message : String
     }
 
 
 type alias InGameData =
-    { message : String
+    { apiUrl : String
+    , message : String
     , game : Game
     , player : Player
-    , apiUrl : String
     , turn : Turn
     }
 
@@ -56,11 +58,6 @@ type Msg
     | NewTurn (Maybe Turn)
 
 
-createGame : String -> Cmd Msg
-createGame apiUrl =
-    Http.send GotGame (requestGame apiUrl)
-
-
 getPlayer : String -> Game -> Cmd Msg
 getPlayer apiUrl game =
     Http.send GotPlayer (requestCreatePlayer apiUrl game)
@@ -69,7 +66,7 @@ getPlayer apiUrl game =
 init : String -> ( Model, Cmd Msg )
 init apiUrl =
     ( PreLobby { apiUrl = apiUrl, message = "Pre lobby" }
-    , createGame apiUrl
+    , createGame apiUrl GotGame
     )
 
 
@@ -118,7 +115,7 @@ updateLobby msg data =
                         { apiUrl = data.apiUrl
                         , game = data.game
                         , player = player
-                        , message = "Created player!"
+                        , message = "Lobby joined.  Waiting for other players."
                         }
                     , Cmd.none
                     )
@@ -216,9 +213,6 @@ lobbyWithPlayerView data =
         [ css [ margin (px 30) ]
         ]
         [ showGame data.game ]
-    , div [ css [ margin (px 30) ] ]
-        [ showPlayer data.player
-        ]
     ]
 
 
@@ -229,9 +223,7 @@ inGameView data =
     , div
         [ css [ margin (px 30) ]
         ]
-        [ showGame data.game
-        , showPlayer data.player
-        ]
+        [ showGame data.game ]
     ]
 
 

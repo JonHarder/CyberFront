@@ -1,6 +1,6 @@
-module Api exposing (requestCreatePlayer, requestGame)
+module Api exposing (requestCreatePlayer)
 
-import Game exposing (Game, decodeGame, encodeGame, getGameId)
+import Game exposing (Game, encodeGame, getGameId)
 import Http
 import Json.Encode as Encode exposing (Value)
 import Map exposing (Map, decodeMap)
@@ -12,15 +12,6 @@ import Unit exposing (Unit, decodeUnits)
 
 
 -- TODO: use elm/url Url builders
-
-
-requestGame : String -> Http.Request Game
-requestGame apiUrl =
-    let
-        endpoint =
-            apiUrl ++ "/game"
-    in
-    Http.post endpoint Http.emptyBody decodeGame
 
 
 requestUnits : String -> Game -> Http.Request (List Unit)

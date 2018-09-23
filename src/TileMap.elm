@@ -1,6 +1,7 @@
-module TileMap exposing (Sprite(..), TileName(..), render)
+module TileMap exposing (Sprite, TileName(..), render, tileToSprite)
 
 import Html exposing (Html)
+import Map.Tiles exposing (Tile, getSpriteName)
 import Svg exposing (Svg, defs, image, svg, use)
 import Svg.Attributes exposing (..)
 import Types exposing (Coord, Dimensions)
@@ -15,6 +16,14 @@ type Sprite
     = Sprite
         { spriteName : String
         , coord : Coord
+        }
+
+
+tileToSprite : Tile -> Coord -> Sprite
+tileToSprite tile coord =
+    Sprite
+        { spriteName = getSpriteName tile
+        , coord = coord
         }
 
 

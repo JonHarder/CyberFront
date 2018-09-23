@@ -13,15 +13,17 @@ var app = Elm.Main.init({
 });
 
 
+var newTurn = turnData => {
+    app.ports.newTurn.send(turnData);
+};
+
 app.ports.bindToGame.subscribe(function(gameId) {
     console.log('bound to game');
     var channel = pusher.subscribe(`game-${gameId}`);
     channel.bind('turn-complete', data => {
         alert('turn complete');
     });
-    channel.bind('turn-start', turnData => {
-        app.ports.newTurn.send(turnData);
-    });
+    channel.bind('turn-start', newTurn);
 });
 
 const seconds = 1000;
@@ -29,15 +31,11 @@ const seconds = 1000;
 // DEBUGGING CODE.
 // simulate a game start event
 setTimeout(() => {
-    console.log('game starting. starting turn 0');
-    app.ports.newTurn.send(
-        { playerNumber: 1 }
-    );
-}, 12 * seconds);
+    console.log('game starting. it is player 1 turn');
+    newTurn({playerNumber: 1});
+}, 5 * seconds);
 
 setTimeout(() => {
-    console.log('game starting. starting turn 0');
-    app.ports.newTurn.send(
-        { playerNumber: 2 }
-    );
-}, 20 * seconds);
+    console.log('new turn. player 2 turn');
+    newTurn({playerNumber: 2});
+}, 10 * seconds);

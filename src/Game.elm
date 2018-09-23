@@ -1,6 +1,9 @@
-module Game exposing (Game, decodeGame, encodeGame, getGameId, showGame)
+module Game exposing (Game, createGame, encodeGame, getGameId, showGame)
 
+import Css exposing (marginBottom, px)
 import Html.Styled exposing (Html, div, text)
+import Html.Styled.Attributes exposing (css)
+import Http
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
@@ -25,15 +28,26 @@ showGame (Game game) =
             game.id
     in
     div []
-        [ div []
-            [ text <| "Game " ++ uuidToString id ]
-        , viewMap game.map
-        ]
+        [ viewMap game.map ]
 
 
 getGameId : Game -> Uuid
 getGameId (Game data) =
     data.id
+
+
+requestGame : String -> Http.Request Game
+requestGame apiUrl =
+    let
+        endpoint =
+            apiUrl ++ "/game"
+    in
+    Http.post endpoint Http.emptyBody decodeGame
+
+
+createGame : String -> (Result Http.Error Game -> msg) -> Cmd msg
+createGame apiUrl makeMsg =
+    Http.send makeMsg (requestGame apiUrl)
 
 
 decodeGame : Decoder Game
