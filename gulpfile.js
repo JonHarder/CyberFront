@@ -37,6 +37,11 @@ gulp.task('html', () => {
         .pipe(gulp.dest(options.output));
 });
 
+gulp.task('assets', () => {
+    return gulp.src('src/assets/**/*')
+        .pipe(gulp.dest(options.output + '/assets'));
+});
+
 gulp.task('js', () => {
     return gulp.src('src/index.js')
         .pipe(gulp.dest(options.output));
@@ -44,4 +49,4 @@ gulp.task('js', () => {
 
 
 console.log(`building in ${build_mode} mode`);
-gulp.task('default', ['elm-bundle', 'html', 'js']);
+gulp.task('default', ['elm-bundle', 'html', 'js', 'assets']);
