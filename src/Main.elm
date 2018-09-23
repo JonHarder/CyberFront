@@ -4,7 +4,6 @@ import Api exposing (requestCreatePlayer, requestGame)
 import Browser exposing (Document)
 import Css exposing (..)
 import Game exposing (Game, showGame)
-import Graphics exposing (..)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
@@ -254,38 +253,6 @@ gameView model =
 
 view : Model -> Document Msg
 view model =
-    let
-        gridDimensions =
-            { width = 640
-            , height = 480
-            }
-
-        image =
-            { src = "http://www.placepuppy.net/64/64"
-            , dimensions =
-                { width = 64
-                , height = 64
-                }
-            }
-
-        tileWidth =
-            64
-
-        sprites =
-            [ Sprite
-                { image = image
-                , coord = { x = 0 * tileWidth, y = 0 * tileWidth }
-                }
-            , Sprite
-                { image = image
-                , coord = { x = 1 * tileWidth, y = 0 * tileWidth }
-                }
-            , Sprite
-                { image = image
-                , coord = { x = 1 * tileWidth, y = 2 * tileWidth }
-                }
-            ]
-    in
     { title = "CyberWars"
     , body = List.map toUnstyled <| gameView model
     }

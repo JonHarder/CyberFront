@@ -1,17 +1,17 @@
 module Map exposing (Map, decodeMap, viewMap)
 
-import Graphics exposing (..)
-import Html.Styled exposing (Html, div, li, text, ul)
+import Html.Styled exposing (Html, div, fromUnstyled, li, text, ul)
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (optional, required)
-import Types exposing (Owner, decodeOwner)
+import TileMap exposing (Sprite(..), TileName(..), render)
+import Types exposing (Coord, Dimensions, Owner, decodeOwner)
 import Unit exposing (Unit)
 
 
 type alias TerrainProperties =
     { walkable : Bool
     , combatMultiplier : Float
-    , description : String
+    , spriteName : String
     }
 
 
@@ -29,6 +29,47 @@ type Tile
     = Tile TileInternals
 
 
+tileToSprite : Tile -> Coord -> Sprite
+tileToSprite (Tile tile) coord =
+    let
+        (Terrain terrain) =
+            tile.terrain
+    in
+    Sprite
+        { spriteName = terrain.spriteName
+        , coord = coord
+        }
+
+
+indexToCoord : Int -> Int -> Coord
+indexToCoord index width =
+    { x = modBy width index, y = index // width }
+
+
+enumerate : List a -> List ( Int, a )
+enumerate items =
+    let
+        combine x y =
+            ( x, y )
+
+        iter =
+            List.range 0 (List.length items)
+    in
+    List.map2 combine iter items
+
+
+mapToSprites : Map -> List Sprite
+mapToSprites (Map data) =
+    let
+        tiles =
+            enumerate data.tiles
+
+        toSprite ( index, tile ) =
+            tileToSprite tile (indexToCoord index data.width)
+    in
+    List.map toSprite tiles
+
+
 type alias MapInternals =
     { tiles : List Tile
     , width : Int
@@ -44,8 +85,26 @@ concrete =
     Terrain
         { walkable = True
         , combatMultiplier = 1.0
-        , description = "concrete"
+        , spriteName = "concrete"
         }
+
+
+brick : Terrain
+brick =
+    Terrain
+        { walkable = True
+        , combatMultiplier = 1.0
+        , spriteName = "brick"
+        }
+
+
+getMapDimensions : Map -> Dimensions
+getMapDimensions (Map data) =
+    let
+        height =
+            List.length data.tiles // data.width
+    in
+    { width = data.width, height = height }
 
 
 getMapWidth : Map -> Int
@@ -53,59 +112,13 @@ getMapWidth (Map map) =
     map.width
 
 
-showTile : Tile -> Html msg
-showTile (Tile tile) =
-    let
-        (Terrain data) =
-            tile.terrain
-
-        walkable =
-            case data.walkable of
-                True ->
-                    "yes"
-
-                False ->
-                    "no"
-    in
-    li []
-        [ div []
-            [ text <| "terrain: " ++ data.description ]
-        , div []
-            [ text <| "walkable: " ++ walkable ]
-        , div []
-            [ text <| "combat mulitplier: " ++ String.fromFloat data.combatMultiplier ]
-        ]
-
-
-showMap : Map -> Html msg
-showMap map =
-    let
-        (Map data) =
-            map
-    in
-    div []
-        [ div []
-            [ text <| "Map (width " ++ String.fromInt (getMapWidth map) ++ ")" ]
-        , div []
-            [ text <| "tiles: " ++ String.fromInt (List.length data.tiles) ]
-        , ul []
-            (List.map showTile data.tiles)
-        ]
-
-
 viewMap : Map -> Html msg
-viewMap (Map data) =
+viewMap map =
     let
-        height =
-            List.length data.tiles // data.width
-
-        dimensions =
-            { width = 640, height = 480 }
-
-        sprites =
-            []
+        tiles =
+            mapToSprites map
     in
-    grid dimensions []
+    fromUnstyled <| render (getMapDimensions map) tiles
 
 
 decodeMap : Decoder Map
@@ -129,6 +142,9 @@ tileHelper terrainType =
     case terrainType of
         "concrete" ->
             Decode.succeed concrete
+
+        "brick" ->
+            Decode.succeed brick
 
         _ ->
             Decode.fail <| "Trying to decode a terrain type, but type: " ++ terrainType ++ " is not supported."
