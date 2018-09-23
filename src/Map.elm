@@ -1,10 +1,10 @@
 module Map exposing (Map, decodeMap, viewMap)
 
+import Graphics exposing (Sprite, render, tileToSprite)
 import Html.Styled exposing (Html, div, fromUnstyled, li, text, ul)
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Map.Tiles exposing (Terrain, Tile, decodeTile)
-import TileMap exposing (Sprite, render, tileToSprite)
 import Types exposing (Coord, Dimensions, Owner, decodeOwner)
 import Unit exposing (Unit)
 import Util exposing (enumerate)
@@ -32,6 +32,7 @@ indexToCoord index (MapWidth width) =
 mapToSprites : Map -> List Sprite
 mapToSprites (Map data) =
     let
+        tiles : List ( Int, Tile )
         tiles =
             enumerate data.tiles
 
@@ -51,15 +52,6 @@ getMapDimensions (Map data) =
             List.length data.tiles // width
     in
     { width = width, height = height }
-
-
-getMapWidth : Map -> Int
-getMapWidth (Map map) =
-    let
-        (MapWidth width) =
-            map.width
-    in
-    width
 
 
 viewMap : Map -> Html msg

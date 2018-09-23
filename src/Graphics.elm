@@ -1,15 +1,10 @@
-module TileMap exposing (Sprite, TileName(..), render, tileToSprite)
+module Graphics exposing (Sprite, render, tileToSprite)
 
 import Html exposing (Html)
 import Map.Tiles exposing (Tile, getSpriteName)
-import Svg exposing (Svg, defs, image, svg, use)
+import Svg exposing (Svg, image, svg)
 import Svg.Attributes exposing (..)
 import Types exposing (Coord, Dimensions)
-
-
-type TileName
-    = Concrete
-    | Brick
 
 
 type Sprite
