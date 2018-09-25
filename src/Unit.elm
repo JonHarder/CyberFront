@@ -64,6 +64,9 @@ type alias UnitInternals =
     , speed : Int
     , coord : Maybe Coord
     , owner : Owner
+    , currentAP : Int
+    , maxAP : Int
+    , apRegen : Int
     }
 
 
@@ -96,6 +99,9 @@ decodeUnit =
         |> required "speed" Decode.int
         |> required "coordinate" (Decode.nullable decodeCoord)
         |> required "owner" (Decode.int |> Decode.andThen decodeOwner)
+        |> required "currentAP" Decode.int
+        |> required "maxAP" Decode.int
+        |> required "apRegen" Decode.int
         |> Decode.map Unit
 
 
