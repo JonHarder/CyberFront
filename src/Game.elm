@@ -23,10 +23,6 @@ type Game
 
 showGame : Game -> Html msg
 showGame (Game game) =
-    let
-        id =
-            game.id
-    in
     div []
         [ viewMap game.map ]
 

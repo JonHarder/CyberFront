@@ -1,5 +1,7 @@
-module Unit exposing (Unit, decodeUnits)
+module Unit exposing (Unit, decodeUnits, getUnits)
 
+import Game exposing (Game, getGameId)
+import Http
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (required)
 import Types
@@ -10,6 +12,7 @@ import Types
         , decodeCoord
         , decodeOwner
         , decodeUuid
+        , uuidToString
         )
 
 
@@ -66,6 +69,18 @@ type alias UnitInternals =
 
 type Unit
     = Unit UnitInternals
+
+
+getUnits : String -> Game -> (Result Http.Error (List Unit) -> msg) -> Cmd msg
+getUnits apiUrl game makeMsg =
+    let
+        endpoint =
+            apiUrl ++ "/units/" ++ (uuidToString <| getGameId game)
+
+        request =
+            Http.get endpoint decodeUnits
+    in
+    Http.send makeMsg request
 
 
 decodeUnit : Decoder Unit

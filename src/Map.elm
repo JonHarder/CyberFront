@@ -6,7 +6,6 @@ import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Map.Tiles exposing (Terrain, Tile, decodeTile)
 import Types exposing (Coord, Dimensions, Owner, decodeOwner)
-import Unit exposing (Unit)
 import Util exposing (enumerate)
 
 

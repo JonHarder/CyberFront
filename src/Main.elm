@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (InGameData, LobbyData, LobbyWithPlayerData, Model(..), Msg(..), PreLobbyData, gameView, inGameView, init, lobbyView, lobbyWithPlayerView, main, preLobbyView, subscriptions, update, updateInGame, updateLobby, updateLobbyWithPlayer, updatePreLobby, view)
 
 import Browser exposing (Document)
 import Css exposing (..)
@@ -10,6 +10,7 @@ import Http
 import Player exposing (Player, createPlayer, yourTurn)
 import Pusher exposing (joinGame, newTurn)
 import Turn exposing (turnEvent)
+import Unit exposing (Unit, getUnits)
 
 
 type alias PreLobbyData =
@@ -39,6 +40,7 @@ type alias InGameData =
     , game : Game
     , player : Player
     , playerNumber : Int
+    , units : List Unit
     }
 
 
@@ -53,6 +55,7 @@ type Msg
     = GotGame (Result Http.Error Game)
     | GotPlayer (Result Http.Error Player)
     | NewTurn (Maybe Int)
+    | GotUnits (Result Http.Error (List Unit))
 
 
 init : String -> ( Model, Cmd Msg )
@@ -132,8 +135,9 @@ updateLobbyWithPlayer msg data =
                         , game = data.game
                         , apiUrl = data.apiUrl
                         , playerNumber = playerNumber
+                        , units = []
                         }
-                    , Cmd.none
+                    , getUnits data.apiUrl data.game GotUnits
                     )
 
                 Nothing ->
@@ -163,6 +167,24 @@ updateInGame msg data =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        GotUnits result ->
+            case result of
+                Err e ->
+                    let
+                        _ =
+                            Debug.log "failed to get units" (Debug.toString e)
+                    in
+                    ( InGame { data | message = "Failed to get units" }, Cmd.none )
+
+                Ok units ->
+                    ( InGame
+                        { data
+                            | message = "Got units"
+                            , units = units
+                        }
+                    , Cmd.none
+                    )
 
         _ ->
             ( model, Cmd.none )
