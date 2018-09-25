@@ -44,8 +44,8 @@ render dimensions sprites =
                 |> viewBox
     in
     svg
-        [ width <| String.fromInt 80
-        , height <| String.fromInt 80
+        [ width <| String.fromInt 640
+        , height <| String.fromInt 640
         , vbox
         ]
         (List.map renderSprite sprites)

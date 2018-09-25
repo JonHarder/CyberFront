@@ -1,6 +1,5 @@
 module Main exposing (..)
 
-import Api exposing (requestCreatePlayer)
 import Browser exposing (Document)
 import Css exposing (..)
 import Game exposing (Game, createGame, showGame)
@@ -8,12 +7,9 @@ import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
-import Json.Encode exposing (Value)
-import Map exposing (..)
-import Player exposing (Player, showPlayer, yourTurn)
+import Player exposing (Player, createPlayer, yourTurn)
 import Pusher exposing (joinGame, newTurn)
 import Turn exposing (turnEvent)
-import Types exposing (Coord, Dimensions)
 
 
 type alias PreLobbyData =
@@ -59,11 +55,6 @@ type Msg
     | NewTurn (Maybe Int)
 
 
-getPlayer : String -> Game -> Cmd Msg
-getPlayer apiUrl game =
-    Http.send GotPlayer (requestCreatePlayer apiUrl game)
-
-
 init : String -> ( Model, Cmd Msg )
 init apiUrl =
     ( PreLobby { apiUrl = apiUrl, message = "Pre lobby" }
@@ -89,7 +80,7 @@ updatePreLobby msg data =
                         , game = game
                         , apiUrl = data.apiUrl
                         }
-                    , Cmd.batch [ joinGame game, getPlayer data.apiUrl game ]
+                    , Cmd.batch [ joinGame game, createPlayer data.apiUrl game GotPlayer ]
                     )
 
         _ ->
