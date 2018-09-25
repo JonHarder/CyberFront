@@ -246,9 +246,28 @@ inGameView data =
                 "Not your turn"
         ]
     , div
-        [ css [ margin (px 30) ]
+        [ css
+            [ property "display" "grid"
+            , property "grid-template-columns" "2fr 1fr"
+            , property "grid-template-rows" "2"
+            ]
         ]
-        [ showGame data.game ]
+        [ div
+            [ css
+                [ property "grid-column-start" "1"
+                , property "grid-column-end" "2"
+                ]
+            ]
+            [ showGame data.game ]
+        , div
+            [ css
+                [ property "grid-column-start" "2"
+                , property "grid-column-end" "3"
+                , backgroundColor (hex "555555")
+                ]
+            ]
+            [ text "hello" ]
+        ]
     ]
 
 
