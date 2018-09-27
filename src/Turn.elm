@@ -1,10 +1,11 @@
-module Turn exposing (Turn, startTurn, turnEvent)
+module Turn exposing (Turn, finishTurn, startTurn, turnEvent)
 
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeValue, int)
 import Json.Decode.Pipeline exposing (required)
-import Player exposing (Player, encodePlayer)
-import Types exposing (Uuid, decodeUuid)
+import Json.Encode as Encode
+import Player exposing (Player, PlayerNumber, decodePlayerNumber, encodePlayer)
+import Types exposing (Uuid, decodeUuid, uuidToString)
 
 
 type TurnStatus
@@ -22,24 +23,78 @@ type Turn
     = Turn TurnInternals
 
 
+encodeTurn : Turn -> Value
+encodeTurn (Turn data) =
+    let
+        status =
+            case data.status of
+                InProgress ->
+                    "in-progress"
+
+                Complete ->
+                    "turn-complete"
+    in
+    Encode.object [ ( "status", Encode.string status ) ]
+
+
+getTurnId : Turn -> String
+getTurnId (Turn data) =
+    uuidToString data.id
+
+
 type alias TurnEvent =
-    { playerNumber : Int }
+    { playerNumber : PlayerNumber }
 
 
 decodeTurnEvent : Decoder TurnEvent
 decodeTurnEvent =
     Decode.succeed TurnEvent
-        |> required "playerNumber" int
+        |> required "playerNumber" decodePlayerNumber
 
 
-turnEvent : (Maybe Int -> msg) -> Value -> msg
+turnEvent : (Maybe PlayerNumber -> msg) -> Value -> msg
 turnEvent makeMsg value =
-    case decodeValue decodeTurnEvent value of
-        Ok turnData ->
-            makeMsg <| Just turnData.playerNumber
+    let
+        parsedEvent =
+            case decodeValue decodeTurnEvent value of
+                Ok data ->
+                    Just data.playerNumber
 
-        _ ->
-            makeMsg Nothing
+                Err _ ->
+                    Nothing
+    in
+    makeMsg parsedEvent
+
+
+patch : String -> Http.Body -> Decoder val -> Http.Request val
+patch url body decoder =
+    Http.request
+        { method = "PATCH"
+        , headers = []
+        , url = url
+        , body = body
+        , expect = Http.expectJson decoder
+        , timeout = Nothing
+        , withCredentials = False
+        }
+
+
+finishTurn : String -> Turn -> (Result Http.Error () -> msg) -> Cmd msg
+finishTurn apiUrl (Turn data) turnMsg =
+    let
+        endpoint =
+            apiUrl ++ "/turns/" ++ uuidToString data.id
+
+        finishedTurn =
+            Turn { id = data.id, status = Complete }
+
+        body =
+            Http.jsonBody <| encodeTurn finishedTurn
+
+        request =
+            patch endpoint body (Decode.succeed ())
+    in
+    Http.send turnMsg request
 
 
 startTurn : String -> Player -> (Result Http.Error Turn -> msg) -> Cmd msg
@@ -51,10 +106,10 @@ startTurn apiUrl player turnMsg =
         body =
             Http.jsonBody <| encodePlayer player
 
-        startTurnRequest =
+        request =
             Http.post endpoint body decodeTurn
     in
-    Http.send turnMsg startTurnRequest
+    Http.send turnMsg request
 
 
 decodeStatus : Decoder TurnStatus

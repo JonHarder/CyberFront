@@ -1,6 +1,8 @@
 module Player exposing
     ( Player
+    , PlayerNumber
     , createPlayer
+    , decodePlayerNumber
     , encodePlayer
     , showPlayer
     , yourTurn
@@ -25,13 +27,13 @@ type Player
     = Player PlayerInternals
 
 
-type alias PlayerNumber =
-    Int
+type PlayerNumber
+    = PlayerNumber Int
 
 
 yourTurn : Player -> PlayerNumber -> Bool
-yourTurn (Player p) playerNum =
-    p.playerNumber == playerNum
+yourTurn (Player p) (PlayerNumber n) =
+    p.playerNumber == n
 
 
 getPlayerId : Player -> Uuid
@@ -59,6 +61,11 @@ requestCreatePlayer apiUrl game =
             Http.jsonBody <| encodeGame game
     in
     Http.post endpoint body decodePlayer
+
+
+decodePlayerNumber : Decoder PlayerNumber
+decodePlayerNumber =
+    Decode.map PlayerNumber Decode.int
 
 
 decodePlayer : Decoder Player

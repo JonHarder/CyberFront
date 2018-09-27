@@ -34,16 +34,10 @@ const seconds = 1000;
 setTimeout(() => {
     console.log('game starting. it is player 1 turn');
     newTurn({playerNumber: 1});
-}, 5 * seconds);
+}, 20 * seconds);
 
 
-setTimeout(() => {
-    console.log('new turn. player 2 turn');
-    newTurn({playerNumber: 2});
-}, 10 * seconds);
-
-
-setTimeout(() => {
-    console.log('new turn. player 1 turn');
-    newTurn({playerNumber: 1});
-}, 15 * seconds);
+// setTimeout(() => {
+//     console.log('new turn. player 2 turn');
+//     newTurn({playerNumber: 2});
+// }, 30 * seconds);
