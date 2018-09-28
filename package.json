@@ -8,10 +8,12 @@
     "gulp-elm": "^0.8.1"
   },
   "scripts": {
+    "server": "node server.js",
     "build": "gulp",
     "build-production": "NODE_ENV=production gulp && ./compress.sh"
   },
   "dependencies": {
+    "express": "^4.16.3",
     "uglify-js": "^3.4.9"
   }
 }

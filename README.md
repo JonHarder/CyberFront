@@ -12,9 +12,8 @@
 ### Development Server
 
 ```bash
-elm reactor
-# assuming port 8000 was free
-open localhost:8000/src/index.html
+yarn server
+open localhost:8000
 ```
 
 ### Development Build
@@ -31,6 +30,8 @@ yarn build-production
 
 
 ## TODO
+* Make server.js aware of development vs prod script locations
+* Fix express routes to not have to serve every js file Separately
 * ~graphics (maybe [elm/svg](https://package.elm-lang.org/packages/elm/svg/latest)?)~
 * Animations
 * ~Display Board using map~

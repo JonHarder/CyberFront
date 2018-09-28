@@ -14,7 +14,7 @@ import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
 import Types exposing (Uuid, uuidToString)
 import Unit exposing (Unit, getUnits)
 import Url exposing (Url)
-import Url.Parser exposing ((<?>), Parser, map, parse, s, top)
+import Url.Parser exposing ((</>), (<?>), Parser, map, parse, s, top)
 import Url.Parser.Query as Query
 
 
@@ -86,7 +86,7 @@ type ParsedUuid
 
 parseGame : Parser (ParsedUuid -> a) a
 parseGame =
-    map ParsedUuid (s "index.html" <?> Query.string "gameId")
+    map ParsedUuid (top <?> Query.string "gameId")
 
 
 parseGameId : Url -> Maybe String
@@ -106,7 +106,7 @@ parseGameId url =
         Nothing ->
             let
                 _ =
-                    Debug.log "unsucessful parse" "fuck"
+                    Debug.log "unsucessful parse" "fluff"
             in
             Nothing
 
@@ -126,7 +126,7 @@ init apiUrl url key =
                 Nothing ->
                     let
                         _ =
-                            Debug.log "successful parse, but no game id found" "god dammit"
+                            Debug.log "successful parse, but no game id found" "gosh darnit"
                     in
                     createGame apiUrl GotGame
     in
