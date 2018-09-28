@@ -1,6 +1,5 @@
 {
     "type": "application",
-    "license": "MIT",
     "source-directories": [
         "src"
     ],
@@ -14,12 +13,12 @@
             "elm/http": "1.0.0",
             "elm/json": "1.0.0",
             "elm/svg": "1.0.0",
+            "elm/url": "1.0.0",
             "rtfeldman/elm-css": "15.1.0"
         },
         "indirect": {
             "Skinney/murmur3": "2.0.7",
             "elm/time": "1.0.0",
-            "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.0",
             "rtfeldman/elm-hex": "1.0.0"
         }

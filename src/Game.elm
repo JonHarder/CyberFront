@@ -1,4 +1,4 @@
-module Game exposing (Game, createGame, encodeGame, getGameId, showGame)
+module Game exposing (Game, createGame, encodeGame, getGame, getGameId, showGame)
 
 import Css exposing (marginBottom, px)
 import Html.Styled exposing (Html, div, text)
@@ -30,6 +30,18 @@ showGame (Game game) =
 getGameId : Game -> Uuid
 getGameId (Game data) =
     data.id
+
+
+getGame : String -> String -> (Result Http.Error Game -> msg) -> Cmd msg
+getGame apiUrl gameId makeMsg =
+    let
+        endpoint =
+            apiUrl ++ "/game/" ++ gameId
+
+        request =
+            Http.get endpoint decodeGame
+    in
+    Http.send makeMsg request
 
 
 requestGame : String -> Http.Request Game

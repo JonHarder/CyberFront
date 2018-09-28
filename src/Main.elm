@@ -1,8 +1,9 @@
-module Main exposing (InGameData, InTurnData, LobbyData, LobbyWithPlayerData, Model(..), Msg(..), PreLobbyData, beginTurn, gameView, init, lobbyView, lobbyWithPlayerView, main, preLobbyView, subscriptions, takingTurnView, update, updateLobby, updateLobbyWithPlayer, updatePreLobby, updateTakingTurn, updateWaitingForTurn, view, waitingForTurnView)
+module Main exposing (InGameData, InTurnData, LobbyData, LobbyWithPlayerData, Model(..), Msg(..), PreLobbyData, beginTurn, gameView, init, lobbyView, lobbyWithPlayerView, main, parseGameId, preLobbyView, subscriptions, takingTurnView, update, updateLobby, updateLobbyWithPlayer, updatePreLobby, updateTakingTurn, updateWaitingForTurn, view, waitingForTurnView)
 
-import Browser exposing (Document)
+import Browser exposing (Document, UrlRequest)
+import Browser.Navigation exposing (Key)
 import Css exposing (..)
-import Game exposing (Game, createGame, showGame)
+import Game exposing (Game, createGame, getGame, getGameId, showGame)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
@@ -10,7 +11,11 @@ import Http
 import Player exposing (Player, PlayerNumber, createPlayer, yourTurn)
 import Pusher exposing (joinGame, newTurn)
 import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
+import Types exposing (Uuid, uuidToString)
 import Unit exposing (Unit, getUnits)
+import Url exposing (Url)
+import Url.Parser exposing ((<?>), Parser, map, parse, s, top)
+import Url.Parser.Query as Query
 
 
 type alias PreLobbyData =
@@ -71,12 +76,62 @@ type Msg
     | EndTurn
     | TurnFinished
     | GotUnits (Result Http.Error (List Unit))
+    | UrlChanged Url
+    | UrlRequested UrlRequest
 
 
-init : String -> ( Model, Cmd Msg )
-init apiUrl =
+type ParsedUuid
+    = ParsedUuid (Maybe String)
+
+
+parseGame : Parser (ParsedUuid -> a) a
+parseGame =
+    map ParsedUuid (s "index.html" <?> Query.string "gameId")
+
+
+parseGameId : Url -> Maybe String
+parseGameId url =
+    let
+        _ =
+            Debug.log "given url" url
+    in
+    case parse parseGame url of
+        Just (ParsedUuid mGame) ->
+            let
+                _ =
+                    Debug.log "successful parse" mGame
+            in
+            mGame
+
+        Nothing ->
+            let
+                _ =
+                    Debug.log "unsucessful parse" "fuck"
+            in
+            Nothing
+
+
+init : String -> Url -> Key -> ( Model, Cmd Msg )
+init apiUrl url key =
+    let
+        initCommand =
+            case parseGameId url of
+                Just gameId ->
+                    let
+                        _ =
+                            Debug.log "gameId" gameId
+                    in
+                    getGame apiUrl gameId GotGame
+
+                Nothing ->
+                    let
+                        _ =
+                            Debug.log "successful parse, but no game id found" "god dammit"
+                    in
+                    createGame apiUrl GotGame
+    in
     ( PreLobby { apiUrl = apiUrl, message = "Pre lobby" }
-    , createGame apiUrl GotGame
+    , initCommand
     )
 
 
@@ -90,6 +145,10 @@ updatePreLobby msg data =
         GotGame result ->
             case result of
                 Err err ->
+                    let
+                        _ =
+                            Debug.log "fuck" err
+                    in
                     ( PreLobby { data | message = "failed to create game" }, Cmd.none )
 
                 Ok game ->
@@ -222,6 +281,25 @@ updateWaitingForTurn msg data =
                     , Cmd.none
                     )
 
+        NewTurn turnData ->
+            case turnData of
+                Just playerNumber ->
+                    let
+                        inGameData : InGameData
+                        inGameData =
+                            { apiUrl = data.apiUrl
+                            , message = "received new turn event"
+                            , game = data.game
+                            , player = data.player
+                            , playerNumber = playerNumber
+                            , units = []
+                            }
+                    in
+                    beginTurn inGameData
+
+                Nothing ->
+                    ( WaitingForTurn { data | message = "failed to parse turn" }, Cmd.none )
+
         _ ->
             ( WaitingForTurn data, Cmd.none )
 
@@ -254,6 +332,7 @@ lobbyView : LobbyData -> List (Html Msg)
 lobbyView data =
     [ h1 [] [ text "Lobby" ]
     , h2 [] [ text data.message ]
+    , h3 [] [ text <| "game: " ++ uuidToString (getGameId data.game) ]
     , div
         [ css [ margin (px 30) ]
         ]
@@ -265,6 +344,7 @@ lobbyWithPlayerView : LobbyWithPlayerData -> List (Html Msg)
 lobbyWithPlayerView data =
     [ h1 [] [ text "Lobby...with a player" ]
     , h2 [] [ text data.message ]
+    , h3 [] [ text <| "game: " ++ uuidToString (getGameId data.game) ]
     , div
         [ css [ margin (px 30) ]
         ]
@@ -338,9 +418,11 @@ subscriptions model =
 
 main : Program String Model Msg
 main =
-    Browser.document
+    Browser.application
         { init = init
         , update = update
         , view = view
         , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = UrlRequested
         }
