@@ -20,6 +20,12 @@ import Url.Parser exposing ((</>), (<?>), Parser, map, parse, s, top)
 import Url.Parser.Query as Query
 
 
+type alias Config =
+    { apiUrl : String
+    , svgPath : String
+    }
+
+
 type alias PreLobbyData =
     { message : String
     , config : Config
@@ -100,12 +106,6 @@ parseGameId url =
 
         Nothing ->
             Nothing
-
-
-type alias Config =
-    { apiUrl : String
-    , svgPath : String
-    }
 
 
 configDecoder : Decoder Config
