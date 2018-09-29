@@ -8,6 +8,8 @@ import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
+import Json.Decode as Decode exposing (Decoder, Value, decodeValue)
+import Json.Decode.Pipeline exposing (required)
 import Player exposing (Player, PlayerNumber, createPlayer, yourTurn)
 import Pusher exposing (joinGame, newTurn)
 import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
@@ -19,44 +21,44 @@ import Url.Parser.Query as Query
 
 
 type alias PreLobbyData =
-    { apiUrl : String
-    , message : String
+    { message : String
+    , config : Config
     }
 
 
 type alias LobbyData =
-    { apiUrl : String
-    , message : String
+    { message : String
     , game : Game
+    , config : Config
     }
 
 
 type alias LobbyWithPlayerData =
-    { apiUrl : String
-    , message : String
+    { message : String
     , game : Game
     , player : Player
+    , config : Config
     }
 
 
 type alias InGameData =
-    { apiUrl : String
-    , message : String
+    { message : String
     , game : Game
     , player : Player
     , playerNumber : PlayerNumber
     , units : List Unit
+    , config : Config
     }
 
 
 type alias InTurnData =
-    { apiUrl : String
-    , message : String
+    { message : String
     , player : Player
     , game : Game
     , playerNumber : PlayerNumber
     , units : List Unit
     , turn : Turn
+    , config : Config
     }
 
 
@@ -66,6 +68,7 @@ type Model
     | LobbyWithPlayer LobbyWithPlayerData
     | TakingTurn InTurnData
     | WaitingForTurn InGameData
+    | ConfigError
 
 
 type Msg
@@ -91,48 +94,55 @@ parseGame =
 
 parseGameId : Url -> Maybe String
 parseGameId url =
-    let
-        _ =
-            Debug.log "given url" url
-    in
     case parse parseGame url of
         Just (ParsedUuid mGame) ->
-            let
-                _ =
-                    Debug.log "successful parse" mGame
-            in
             mGame
 
         Nothing ->
-            let
-                _ =
-                    Debug.log "unsucessful parse" "fluff"
-            in
             Nothing
 
 
-init : String -> Url -> Key -> ( Model, Cmd Msg )
-init apiUrl url key =
-    let
-        initCommand =
-            case parseGameId url of
-                Just gameId ->
-                    let
-                        _ =
-                            Debug.log "gameId" gameId
-                    in
-                    getGame apiUrl gameId GotGame
+type alias Config =
+    { apiUrl : String
+    , svgPath : String
+    }
 
-                Nothing ->
-                    let
-                        _ =
-                            Debug.log "successful parse, but no game id found" "gosh darnit"
-                    in
-                    createGame apiUrl GotGame
-    in
-    ( PreLobby { apiUrl = apiUrl, message = "Pre lobby" }
-    , initCommand
-    )
+
+configDecoder : Decoder Config
+configDecoder =
+    Decode.succeed Config
+        |> required "apiUrl" Decode.string
+        |> required "svgPath" Decode.string
+
+
+parseFlags : Value -> Result Decode.Error Config
+parseFlags value =
+    decodeValue configDecoder value
+
+
+init : Value -> Url -> Key -> ( Model, Cmd Msg )
+init flags url key =
+    case parseFlags flags of
+        Ok config ->
+            let
+                model =
+                    PreLobby
+                        { message = "Pre Lobby"
+                        , config = config
+                        }
+
+                command =
+                    case parseGameId url of
+                        Just gameId ->
+                            getGame config.apiUrl gameId GotGame
+
+                        Nothing ->
+                            createGame config.apiUrl GotGame
+            in
+            ( model, command )
+
+        Err _ ->
+            ( ConfigError, Cmd.none )
 
 
 updatePreLobby : Msg -> PreLobbyData -> ( Model, Cmd Msg )
@@ -145,19 +155,15 @@ updatePreLobby msg data =
         GotGame result ->
             case result of
                 Err err ->
-                    let
-                        _ =
-                            Debug.log "fuck" err
-                    in
                     ( PreLobby { data | message = "failed to create game" }, Cmd.none )
 
                 Ok game ->
                     ( Lobby
                         { message = "created game, joining lobby..."
                         , game = game
-                        , apiUrl = data.apiUrl
+                        , config = data.config
                         }
-                    , Cmd.batch [ joinGame game, createPlayer data.apiUrl game GotPlayer ]
+                    , Cmd.batch [ joinGame game, createPlayer data.config.apiUrl game GotPlayer ]
                     )
 
         _ ->
@@ -181,10 +187,10 @@ updateLobby msg data =
 
                 Ok player ->
                     ( LobbyWithPlayer
-                        { apiUrl = data.apiUrl
+                        { message = "Lobby joined.  Waiting for other players."
                         , game = data.game
                         , player = player
-                        , message = "Lobby joined.  Waiting for other players."
+                        , config = data.config
                         }
                     , Cmd.none
                     )
@@ -198,7 +204,7 @@ beginTurn data =
     case yourTurn data.player data.playerNumber of
         True ->
             ( WaitingForTurn { data | message = "Starting turn..." }
-            , startTurn data.apiUrl data.player TurnStarted
+            , startTurn data.config.apiUrl data.player TurnStarted
             )
 
         False ->
@@ -218,12 +224,12 @@ updateLobbyWithPlayer msg data =
                     let
                         inGameData : InGameData
                         inGameData =
-                            { apiUrl = data.apiUrl
-                            , message = "received new turn event"
+                            { message = "received new turn event"
                             , game = data.game
                             , player = data.player
                             , playerNumber = playerNumber
                             , units = []
+                            , config = data.config
                             }
                     in
                     beginTurn inGameData
@@ -240,14 +246,14 @@ updateTakingTurn msg data =
     case msg of
         EndTurn ->
             ( WaitingForTurn
-                { apiUrl = data.apiUrl
-                , message = "turn complete!"
+                { message = "turn complete!"
                 , game = data.game
                 , player = data.player
                 , playerNumber = data.playerNumber
                 , units = data.units
+                , config = data.config
                 }
-            , finishTurn data.apiUrl data.turn (\_ -> TurnFinished)
+            , finishTurn data.config.apiUrl data.turn (\_ -> TurnFinished)
             )
 
         _ ->
@@ -262,13 +268,13 @@ updateWaitingForTurn msg data =
                 Ok turn ->
                     let
                         inTurnData =
-                            { apiUrl = data.apiUrl
-                            , message = "turn started. do your thing."
+                            { message = "turn started. do your thing."
                             , game = data.game
                             , player = data.player
                             , playerNumber = data.playerNumber
                             , units = []
                             , turn = turn
+                            , config = data.config
                             }
                     in
                     ( TakingTurn inTurnData
@@ -287,12 +293,12 @@ updateWaitingForTurn msg data =
                     let
                         inGameData : InGameData
                         inGameData =
-                            { apiUrl = data.apiUrl
-                            , message = "received new turn event"
+                            { message = "received new turn event"
                             , game = data.game
                             , player = data.player
                             , playerNumber = playerNumber
                             , units = []
+                            , config = data.config
                             }
                     in
                     beginTurn inGameData
@@ -322,6 +328,9 @@ update msg model =
         WaitingForTurn data ->
             updateWaitingForTurn msg data
 
+        ConfigError ->
+            ( model, Cmd.none )
+
 
 preLobbyView : PreLobbyData -> List (Html Msg)
 preLobbyView data =
@@ -336,7 +345,7 @@ lobbyView data =
     , div
         [ css [ margin (px 30) ]
         ]
-        [ showGame data.game ]
+        [ showGame data.config.svgPath data.game ]
     ]
 
 
@@ -348,7 +357,7 @@ lobbyWithPlayerView data =
     , div
         [ css [ margin (px 30) ]
         ]
-        [ showGame data.game ]
+        [ showGame data.config.svgPath data.game ]
     ]
 
 
@@ -361,7 +370,7 @@ waitingForTurnView data =
     , div
         [ css [ margin (px 30) ]
         ]
-        [ showGame data.game ]
+        [ showGame data.config.svgPath data.game ]
     ]
 
 
@@ -372,7 +381,7 @@ takingTurnView data =
     , div
         [ css [ margin (px 30) ]
         ]
-        [ showGame data.game ]
+        [ showGame data.config.svgPath data.game ]
     , button [ onClick EndTurn ] [ text "end turn" ]
     ]
 
@@ -395,6 +404,9 @@ gameView model =
         TakingTurn data ->
             takingTurnView data
 
+        ConfigError ->
+            [ h1 [] [ text "You dun fucked up a-a-ron" ] ]
+
 
 view : Model -> Document Msg
 view model =
@@ -416,7 +428,7 @@ subscriptions model =
             Sub.none
 
 
-main : Program String Model Msg
+main : Program Value Model Msg
 main =
     Browser.application
         { init = init

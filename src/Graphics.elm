@@ -22,10 +22,10 @@ tileToSprite tile coord =
         }
 
 
-renderSprite : Sprite -> Svg msg
-renderSprite (Sprite sprite) =
+renderSprite : String -> Sprite -> Svg msg
+renderSprite svgPath (Sprite sprite) =
     image
-        [ xlinkHref <| "assets/spritemap.svg#" ++ sprite.spriteName
+        [ xlinkHref <| svgPath ++ "#" ++ sprite.spriteName
         , x <| String.fromInt sprite.coord.x
         , y <| String.fromInt sprite.coord.y
         , width "1"
@@ -34,8 +34,8 @@ renderSprite (Sprite sprite) =
         []
 
 
-render : Dimensions -> List Sprite -> Html msg
-render dimensions sprites =
+render : String -> Dimensions -> List Sprite -> Html msg
+render svgPath dimensions sprites =
     let
         vbox =
             [ 0, 0, dimensions.width, dimensions.height ]
@@ -44,8 +44,8 @@ render dimensions sprites =
                 |> viewBox
     in
     svg
-        [ width <| String.fromInt 640
-        , height <| String.fromInt 640
+        [ width <| String.fromInt 320
+        , height <| String.fromInt 320
         , vbox
         ]
-        (List.map renderSprite sprites)
+        (List.map (renderSprite svgPath) sprites)

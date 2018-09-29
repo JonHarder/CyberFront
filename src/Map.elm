@@ -53,8 +53,8 @@ getMapDimensions (Map data) =
     { width = width, height = height }
 
 
-viewMap : Map -> Html msg
-viewMap map =
+viewMap : String -> Map -> Html msg
+viewMap svgPath map =
     let
         sprites =
             mapToSprites map
@@ -62,7 +62,7 @@ viewMap map =
         dimensions =
             getMapDimensions map
     in
-    fromUnstyled <| render dimensions sprites
+    fromUnstyled <| render svgPath dimensions sprites
 
 
 decodeMap : Decoder Map
