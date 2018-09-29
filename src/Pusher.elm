@@ -10,10 +10,6 @@ port newTurn : (Value -> msg) -> Sub msg
 
 joinGame : Game -> Cmd msg
 joinGame game =
-    let
-        _ =
-            Debug.log "binding to game" (getGameId game)
-    in
     bindToGame <| uuidToString <| getGameId game
 
 

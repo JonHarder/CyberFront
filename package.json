@@ -4,16 +4,15 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-elm": "^0.8.1"
+    "node-elm-compiler": "^5.0.1",
+    "parcel": "^1.10.1"
   },
   "scripts": {
     "server": "node server.js",
-    "build": "gulp",
-    "build-production": "NODE_ENV=production gulp && ./compress.sh"
+    "dev": "parcel src/index.html",
+    "build": "parcel build src/index.html"
   },
   "dependencies": {
-    "express": "^4.16.3",
     "uglify-js": "^3.4.9"
   }
 }

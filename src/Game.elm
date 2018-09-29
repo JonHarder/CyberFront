@@ -21,10 +21,10 @@ type Game
     = Game GameInternals
 
 
-showGame : Game -> Html msg
-showGame (Game game) =
+showGame : String -> Game -> Html msg
+showGame svgPath (Game game) =
     div []
-        [ viewMap game.map ]
+        [ viewMap svgPath game.map ]
 
 
 getGameId : Game -> Uuid
