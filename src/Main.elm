@@ -1,35 +1,24 @@
-module Main exposing (InGameData, InTurnData, LobbyData, LobbyWithPlayerData, Model(..), Msg(..), PreLobbyData, beginTurn, gameView, init, lobbyView, lobbyWithPlayerView, main, parseGameId, preLobbyView, subscriptions, takingTurnView, update, updateLobby, updateLobbyWithPlayer, updatePreLobby, updateTakingTurn, updateWaitingForTurn, view, waitingForTurnView)
+module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation exposing (Key)
 import Css exposing (..)
 import Game exposing (Game, createGame, getGame, getGameId, showGame)
-import Html.Styled exposing (..)
+import Html.Styled as Html exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeValue)
 import Json.Decode.Pipeline exposing (required)
+import Phases.PreLobby as PreLobby
 import Player exposing (Player, PlayerNumber, createPlayer, yourTurn)
 import Pusher exposing (joinGame, newTurn)
 import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
-import Types exposing (Uuid, uuidToString)
+import Types exposing (Config, Uuid, uuidToString)
 import Unit exposing (Unit, getUnits)
 import Url exposing (Url)
 import Url.Parser exposing ((</>), (<?>), Parser, map, parse, s, top)
 import Url.Parser.Query as Query
-
-
-type alias Config =
-    { apiUrl : String
-    , svgPath : String
-    }
-
-
-type alias PreLobbyData =
-    { message : String
-    , config : Config
-    }
 
 
 type alias LobbyData =
@@ -69,7 +58,7 @@ type alias InTurnData =
 
 
 type Model
-    = PreLobby PreLobbyData
+    = PreLobby PreLobby.Model
     | Lobby LobbyData
     | LobbyWithPlayer LobbyWithPlayerData
     | TakingTurn InTurnData
@@ -78,7 +67,7 @@ type Model
 
 
 type Msg
-    = GotGame (Result Http.Error Game)
+    = PreLobbyMsg PreLobby.Msg
     | GotPlayer (Result Http.Error Player)
     | NewTurn (Maybe PlayerNumber)
     | TurnStarted (Result Http.Error Turn)
@@ -126,48 +115,15 @@ init flags url key =
         Ok config ->
             let
                 model =
-                    PreLobby
-                        { message = "Pre Lobby"
-                        , config = config
-                        }
+                    PreLobby (PreLobby.initModel config)
 
                 command =
-                    case parseGameId url of
-                        Just gameId ->
-                            getGame config.apiUrl gameId GotGame
-
-                        Nothing ->
-                            createGame config.apiUrl GotGame
+                    PreLobby.createOrJoinGame config.apiUrl (parseGameId url)
             in
-            ( model, command )
+            ( model, Cmd.map PreLobbyMsg command )
 
         Err _ ->
             ( ConfigError, Cmd.none )
-
-
-updatePreLobby : Msg -> PreLobbyData -> ( Model, Cmd Msg )
-updatePreLobby msg data =
-    let
-        model =
-            PreLobby data
-    in
-    case msg of
-        GotGame result ->
-            case result of
-                Err err ->
-                    ( PreLobby { data | message = "failed to create game" }, Cmd.none )
-
-                Ok game ->
-                    ( Lobby
-                        { message = "created game, joining lobby..."
-                        , game = game
-                        , config = data.config
-                        }
-                    , Cmd.batch [ joinGame game, createPlayer data.config.apiUrl game GotPlayer ]
-                    )
-
-        _ ->
-            ( model, Cmd.none )
 
 
 updateLobby : Msg -> LobbyData -> ( Model, Cmd Msg )
@@ -310,31 +266,37 @@ updateWaitingForTurn msg data =
             ( WaitingForTurn data, Cmd.none )
 
 
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case model of
-        PreLobby data ->
-            updatePreLobby msg data
+    case ( msg, model ) of
+        ( PreLobbyMsg subMsg, PreLobby preLobbyModel ) ->
+            PreLobby.update subMsg preLobbyModel
+                |> updateWith PreLobby PreLobbyMsg model
 
-        Lobby data ->
+        ( _, Lobby data ) ->
             updateLobby msg data
 
-        LobbyWithPlayer data ->
+        ( _, LobbyWithPlayer data ) ->
             updateLobbyWithPlayer msg data
 
-        TakingTurn data ->
+        ( _, TakingTurn data ) ->
             updateTakingTurn msg data
 
-        WaitingForTurn data ->
+        ( _, WaitingForTurn data ) ->
             updateWaitingForTurn msg data
 
-        ConfigError ->
+        ( _, ConfigError ) ->
             ( model, Cmd.none )
 
-
-preLobbyView : PreLobbyData -> List (Html Msg)
-preLobbyView data =
-    [ h1 [] [ text data.message ] ]
+        ( _, _ ) ->
+            ( model, Cmd.none )
 
 
 lobbyView : LobbyData -> List (Html Msg)
@@ -390,7 +352,7 @@ gameView : Model -> List (Html Msg)
 gameView model =
     case model of
         PreLobby data ->
-            preLobbyView data
+            List.map (Html.map PreLobbyMsg) (PreLobby.view data)
 
         Lobby data ->
             lobbyView data
