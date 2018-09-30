@@ -1,12 +1,15 @@
-module Player exposing
-    ( Player
-    , PlayerNumber
-    , createPlayer
-    , decodePlayerNumber
-    , encodePlayer
-    , showPlayer
-    , yourTurn
-    )
+module Player
+    exposing
+        ( Player
+        , PlayerNumber
+        , createPlayer
+        , decodePlayerNumber
+        , encodePlayer
+        , getPlayer
+        , getPlayerId
+        , showPlayer
+        , yourTurn
+        )
 
 import Game exposing (Game, encodeGame)
 import Html.Styled exposing (Html, div, text)
@@ -44,6 +47,18 @@ getPlayerId (Player data) =
 getPlayerNumber : Player -> Int
 getPlayerNumber (Player data) =
     data.playerNumber
+
+
+getPlayer : String -> String -> (Result Http.Error Player -> msg) -> Cmd msg
+getPlayer apiUrl playerId toMsg =
+    let
+        endpoint =
+            apiUrl ++ "/player/" ++ playerId
+
+        request =
+            Http.get endpoint decodePlayer
+    in
+    Http.send toMsg request
 
 
 createPlayer : String -> Game -> (Result Http.Error Player -> msg) -> Cmd msg

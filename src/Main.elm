@@ -9,9 +9,11 @@ import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeValue)
-import Json.Decode.Pipeline exposing (required)
-import Player exposing (Player, PlayerNumber, createPlayer, yourTurn)
+import Json.Decode.Pipeline exposing (optional, required)
+import Player exposing (Player, PlayerNumber, createPlayer, getPlayer, yourTurn)
+import Ports exposing (savePhaseData)
 import Pusher exposing (joinGame, newTurn)
+import Session exposing (Session, decodeSession, saveSession)
 import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
 import Types exposing (Uuid, uuidToString)
 import Unit exposing (Unit, getUnits)
@@ -23,6 +25,7 @@ import Url.Parser.Query as Query
 type alias Config =
     { apiUrl : String
     , svgPath : String
+    , session : Maybe Session
     }
 
 
@@ -113,6 +116,7 @@ configDecoder =
     Decode.succeed Config
         |> required "apiUrl" Decode.string
         |> required "svgPath" Decode.string
+        |> required "state" (Decode.nullable decodeSession)
 
 
 parseFlags : Value -> Result Decode.Error Config
@@ -126,17 +130,25 @@ init flags url key =
         Ok config ->
             let
                 model =
-                    PreLobby
-                        { message = "Pre Lobby"
-                        , config = config
-                        }
-
-                command =
-                    case parseGameId url of
-                        Just gameId ->
-                            getGame config.apiUrl gameId GotGame
+                    case config.session of
+                        Just sesion ->
+                            PreLobby
+                                { message = "Restoring session"
+                                , config = config
+                                }
 
                         Nothing ->
+                            PreLobby { message = "No saved session found", config = config }
+
+                command =
+                    case ( config.session, parseGameId url ) of
+                        ( _, Just gameId ) ->
+                            getGame config.apiUrl gameId GotGame
+
+                        ( Just session, _ ) ->
+                            getGame config.apiUrl session.gameId GotGame
+
+                        ( Nothing, _ ) ->
                             createGame config.apiUrl GotGame
             in
             ( model, command )
@@ -158,12 +170,23 @@ updatePreLobby msg data =
                     ( PreLobby { data | message = "failed to create game" }, Cmd.none )
 
                 Ok game ->
-                    ( Lobby
-                        { message = "created game, joining lobby..."
-                        , game = game
-                        , config = data.config
-                        }
-                    , Cmd.batch [ joinGame game, createPlayer data.config.apiUrl game GotPlayer ]
+                    let
+                        lobbyData =
+                            { message = "created game, joining lobby..."
+                            , game = game
+                            , config = data.config
+                            }
+                    in
+                    ( Lobby lobbyData
+                    , Cmd.batch
+                        [ joinGame game
+                        , case data.config.session of
+                            Just session ->
+                                getPlayer data.config.apiUrl session.playerId GotPlayer
+
+                            Nothing ->
+                                createPlayer data.config.apiUrl game GotPlayer
+                        ]
                     )
 
         _ ->
@@ -186,13 +209,16 @@ updateLobby msg data =
                     )
 
                 Ok player ->
-                    ( LobbyWithPlayer
-                        { message = "Lobby joined.  Waiting for other players."
-                        , game = data.game
-                        , player = player
-                        , config = data.config
-                        }
-                    , Cmd.none
+                    let
+                        lobbyData =
+                            { message = "Lobby joined.  Waiting for other players."
+                            , game = data.game
+                            , player = player
+                            , config = data.config
+                            }
+                    in
+                    ( LobbyWithPlayer lobbyData
+                    , saveSession lobbyData
                     )
 
         _ ->
