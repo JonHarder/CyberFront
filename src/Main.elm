@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation exposing (Key)
+import Config exposing (Config)
 import Css exposing (..)
 import Game exposing (Game, createGame, getGame, getGameId, showGame)
 import Html.Styled as Html exposing (..)
@@ -9,12 +10,14 @@ import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeValue)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Phases.PreLobby as PreLobby
-import Player exposing (Player, PlayerNumber, createPlayer, yourTurn)
+import Player exposing (Player, PlayerNumber, createPlayer, getPlayer, yourTurn)
+import Ports exposing (savePhaseData)
 import Pusher exposing (joinGame, newTurn)
+import Session exposing (Session, decodeSession, saveSession)
 import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
-import Types exposing (Config, Uuid, uuidToString)
+import Types exposing (Uuid, uuidToString)
 import Unit exposing (Unit, getUnits)
 import Url exposing (Url)
 import Url.Parser exposing ((</>), (<?>), Parser, map, parse, s, top)
@@ -102,6 +105,7 @@ configDecoder =
     Decode.succeed Config
         |> required "apiUrl" Decode.string
         |> required "svgPath" Decode.string
+        |> required "state" (Decode.nullable decodeSession)
 
 
 parseFlags : Value -> Result Decode.Error Config
@@ -109,18 +113,28 @@ parseFlags value =
     decodeValue configDecoder value
 
 
+getSuppliedGameId : Url -> Config -> Maybe String
+getSuppliedGameId url config =
+    case ( parseGameId url, config.session ) of
+        ( Just gameId, _ ) ->
+            Just gameId
+
+        ( Nothing, Just session ) ->
+            Just session.gameId
+
+        ( _, _ ) ->
+            Nothing
+
+
 init : Value -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
     case parseFlags flags of
         Ok config ->
             let
-                model =
-                    PreLobby (PreLobby.initModel config)
-
                 command =
-                    PreLobby.createOrJoinGame config.apiUrl (parseGameId url)
+                    PreLobby.createOrJoinGame config.apiUrl (getSuppliedGameId url config)
             in
-            ( model, Cmd.map PreLobbyMsg command )
+            ( PreLobby (PreLobby.initModel config), Cmd.map PreLobbyMsg command )
 
         Err _ ->
             ( ConfigError, Cmd.none )
@@ -142,13 +156,16 @@ updateLobby msg data =
                     )
 
                 Ok player ->
-                    ( LobbyWithPlayer
-                        { message = "Lobby joined.  Waiting for other players."
-                        , game = data.game
-                        , player = player
-                        , config = data.config
-                        }
-                    , Cmd.none
+                    let
+                        lobbyData =
+                            { message = "Lobby joined.  Waiting for other players."
+                            , game = data.game
+                            , player = player
+                            , config = data.config
+                            }
+                    in
+                    ( LobbyWithPlayer lobbyData
+                    , saveSession lobbyData
                     )
 
         _ ->

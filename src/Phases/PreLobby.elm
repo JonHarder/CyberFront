@@ -1,11 +1,11 @@
 module Phases.PreLobby exposing (Model, Msg, createOrJoinGame, initModel, update, view)
 
+import Config exposing (Config)
 import Game exposing (Game, createGame, getGame)
 import Html.Styled exposing (Html, h1, text)
 import Http
 import Player exposing (createPlayer)
 import Pusher exposing (joinGame)
-import Types exposing (Config)
 
 
 type alias Model =

@@ -1,7 +1,6 @@
 module Types
     exposing
-        ( Config
-        , Coord
+        ( Coord
         , Dimensions
         , Owner
         , Uuid
@@ -13,12 +12,6 @@ module Types
 
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (required)
-
-
-type alias Config =
-    { apiUrl : String
-    , svgPath : String
-    }
 
 
 type Uuid
