@@ -37,7 +37,6 @@ type alias Model =
     { message : String
     , config : Config
     , state : State
-    , mPlayerNumber : Maybe Int
     }
 
 
@@ -59,6 +58,7 @@ type Msg
     | UrlChanged Url
     | UrlRequested UrlRequest
     | NewTurn (Maybe Int)
+    | TurnStarted (Result Http.Error Turn)
 
 
 
@@ -143,7 +143,6 @@ init flags url key =
             in
             ( { message = message
               , config = config
-              , mPlayerNumber = Nothing
               , state = PreLoadingState
               }
             , cmd
@@ -154,7 +153,6 @@ init flags url key =
               , config =
                     fakeConfig
               , state = ConfigErrorState
-              , mPlayerNumber = Nothing
               }
             , Cmd.none
             )
@@ -187,10 +185,21 @@ update msg model =
             Loading.update subMsg data onFailToModel onSuccessToModel
 
         ( LobbyState data, NewTurn turnData ) ->
+            let
+                _ =
+                    Debug.log "new turn!" turnData
+            in
             case turnData of
                 Just playerNumber ->
+                    let
+                        myTurn =
+                            yourTurn data.player playerNumber
+
+                        _ =
+                            Debug.log "turn data" turnData
+                    in
                     ( { model
-                        | mPlayerNumber = turnData
+                        | message = "got new turn event, player number: " ++ String.fromInt playerNumber
                         , state =
                             WaitingForTurnState
                                 { game = data.game
@@ -199,11 +208,55 @@ update msg model =
                                 , playerNumber = playerNumber
                                 }
                       }
-                    , Cmd.none
+                    , if myTurn then
+                        startTurn model.config.apiUrl data.player TurnStarted
+
+                      else
+                        Cmd.none
                     )
 
                 Nothing ->
+                    ( { model | message = "failed to parse new turn data" }, Cmd.none )
+
+        ( WaitingForTurnState data, NewTurn turnData ) ->
+            case turnData of
+                Just playerNumber ->
+                    let
+                        myTurn =
+                            yourTurn data.player playerNumber
+
+                        _ =
+                            Debug.log "turn data" turnData
+                    in
+                    ( { model
+                        | message = "got new turn event, player number: " ++ String.fromInt playerNumber
+                      }
+                    , if myTurn then
+                        startTurn model.config.apiUrl data.player TurnStarted
+
+                      else
+                        Cmd.none
+                    )
+
+                Nothing ->
+                    ( { model | message = "failed to parse new turn data" }, Cmd.none )
+
+        ( WaitingForTurnState data, TurnStarted response ) ->
+            case response of
+                Ok turn ->
+                    ( { model | state = TakingTurnState data { turn = turn } }
+                    , Cmd.none
+                    )
+
+                Err _ ->
                     ( model, Cmd.none )
+
+        ( state, NewTurn turnData ) ->
+            let
+                _ =
+                    Debug.log "new turn in state" state
+            in
+            ( model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -223,23 +276,18 @@ gameView model =
 
         LobbyState data ->
             [ h1 [] [ text "in lobby" ]
+            , h2 [] [ text model.message ]
             , Lobby.view model.config data LobbyMsg
             ]
 
         TakingTurnState _ _ ->
             [ h1 [] [ text "taking a turn" ]
+            , h2 [] [ text model.message ]
             ]
 
         WaitingForTurnState data ->
-            let
-                myTurn =
-                    if yourTurn data.player data.playerNumber then
-                        "your turn"
-
-                    else
-                        "waiting for your turn"
-            in
-            [ h1 [] [ text myTurn ]
+            [ h1 [] [ text "waiting for your turn" ]
+            , h2 [] [ text model.message ]
             , h2 [] [ text <| "Its player number " ++ String.fromInt data.playerNumber ++ "'s turn" ]
             , WaitingForTurn.view model.config data WaitingForTurnMsg
             ]
@@ -258,15 +306,21 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.state of
-        LobbyState _ ->
-            newTurn (turnEvent NewTurn)
-
-        _ ->
-            Sub.none
+    newTurn (turnEvent NewTurn)
 
 
 
+{-
+   case model.state of
+       LobbyState _ ->
+           newTurn (turnEvent NewTurn)
+
+       WaitingForTurnState _ ->
+           newTurn (turnEvent NewTurn)
+
+       _ ->
+           Sub.none
+-}
 {-
    case model of
        LobbyWithPlayer _ ->
