@@ -4,7 +4,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeValue, int)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Player exposing (Player, PlayerNumber, decodePlayerNumber, encodePlayer)
+import Player exposing (Player, decodePlayerNumber, encodePlayer)
 import Types exposing (Uuid, decodeUuid, uuidToString)
 
 
@@ -43,7 +43,7 @@ getTurnId (Turn data) =
 
 
 type alias TurnEvent =
-    { playerNumber : PlayerNumber }
+    { playerNumber : Int }
 
 
 decodeTurnEvent : Decoder TurnEvent
@@ -52,7 +52,7 @@ decodeTurnEvent =
         |> required "playerNumber" decodePlayerNumber
 
 
-turnEvent : (Maybe PlayerNumber -> msg) -> Value -> msg
+turnEvent : (Maybe Int -> msg) -> Value -> msg
 turnEvent makeMsg value =
     let
         parsedEvent =
