@@ -14,7 +14,6 @@ const { Elm } = require('./Main.elm')
 
 
 const savePhaseState = phaseState => {
-    console.log(JSON.stringify(phaseState))
     window.sessionStorage.setItem('state', JSON.stringify(phaseState))
 }
 

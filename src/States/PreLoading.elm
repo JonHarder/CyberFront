@@ -16,7 +16,7 @@ update : Config -> Msg -> (String -> model) -> (String -> Game -> model) -> (Res
 update config (GotGame response) toCurrentState toNextState toMsg =
     case response of
         Ok game ->
-            ( toNextState "Created game" game
+            ( toNextState "got a game" game
             , Cmd.batch
                 [ case config.session of
                     Just session ->

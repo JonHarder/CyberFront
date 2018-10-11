@@ -4,14 +4,14 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation exposing (Key)
 import Config exposing (Config)
 import Css exposing (..)
-import Game exposing (Game, createGame, getGame, getGameId, showGame)
+import Game exposing (Game, createGame, currentPlayer, getGame, getGameId, showGame, updatePlayerNumber)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, decodeValue)
 import Json.Decode.Pipeline exposing (optional, required)
-import Player exposing (Player, createPlayer, getPlayer, yourTurn)
+import Player exposing (Player, createPlayer, getPlayer, showPlayer, yourTurn)
 import Ports exposing (savePhaseData)
 import Pusher exposing (joinGame, newTurn)
 import Session exposing (Session, decodeSession, saveSession)
@@ -59,6 +59,8 @@ type Msg
     | UrlRequested UrlRequest
     | NewTurn (Maybe Int)
     | TurnStarted (Result Http.Error Turn)
+    | TurnFinished
+    | EndTurn
 
 
 
@@ -202,10 +204,9 @@ update msg model =
                         | message = "got new turn event, player number: " ++ String.fromInt playerNumber
                         , state =
                             WaitingForTurnState
-                                { game = data.game
+                                { game = updatePlayerNumber data.game playerNumber
                                 , player = data.player
                                 , units = []
-                                , playerNumber = playerNumber
                                 }
                       }
                     , if myTurn then
@@ -224,9 +225,6 @@ update msg model =
                     let
                         myTurn =
                             yourTurn data.player playerNumber
-
-                        _ =
-                            Debug.log "turn data" turnData
                     in
                     ( { model
                         | message = "got new turn event, player number: " ++ String.fromInt playerNumber
@@ -241,6 +239,13 @@ update msg model =
                 Nothing ->
                     ( { model | message = "failed to parse new turn data" }, Cmd.none )
 
+        ( LobbyState data, TurnStarted response ) ->
+            let
+                _ =
+                    Debug.log "got a turn started event in lobby state somehow" ""
+            in
+            ( model, Cmd.none )
+
         ( WaitingForTurnState data, TurnStarted response ) ->
             case response of
                 Ok turn ->
@@ -251,12 +256,10 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
-        ( state, NewTurn turnData ) ->
-            let
-                _ =
-                    Debug.log "new turn in state" state
-            in
-            ( model, Cmd.none )
+        ( TakingTurnState data turn, EndTurn ) ->
+            ( { model | state = WaitingForTurnState data, message = "turn finished" }
+            , finishTurn model.config.apiUrl turn.turn (\_ -> TurnFinished)
+            )
 
         _ ->
             ( model, Cmd.none )
@@ -277,18 +280,19 @@ gameView model =
         LobbyState data ->
             [ h1 [] [ text "in lobby" ]
             , h2 [] [ text model.message ]
+            , showPlayer data.player
             , Lobby.view model.config data LobbyMsg
             ]
 
         TakingTurnState _ _ ->
             [ h1 [] [ text "taking a turn" ]
             , h2 [] [ text model.message ]
+            , button [ onClick EndTurn ] [ text "End Turn" ]
             ]
 
         WaitingForTurnState data ->
             [ h1 [] [ text "waiting for your turn" ]
             , h2 [] [ text model.message ]
-            , h2 [] [ text <| "Its player number " ++ String.fromInt data.playerNumber ++ "'s turn" ]
             , WaitingForTurn.view model.config data WaitingForTurnMsg
             ]
 

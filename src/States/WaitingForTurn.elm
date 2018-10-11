@@ -14,7 +14,6 @@ type Msg
 type alias Model =
     { game : Game
     , player : Player
-    , playerNumber : Int
     , units : List Unit
     }
 

@@ -23,18 +23,18 @@ type Turn
     = Turn TurnInternals
 
 
-encodeTurn : Turn -> Value
-encodeTurn (Turn data) =
+encodeStatus : TurnStatus -> Value
+encodeStatus status =
     let
-        status =
-            case data.status of
+        s =
+            case status of
                 InProgress ->
                     "in-progress"
 
                 Complete ->
                     "turn-complete"
     in
-    Encode.object [ ( "status", Encode.string status ) ]
+    Encode.object [ ( "status", Encode.string s ) ]
 
 
 getTurnId : Turn -> String
@@ -86,10 +86,10 @@ finishTurn apiUrl (Turn data) turnMsg =
             apiUrl ++ "/turns/" ++ uuidToString data.id
 
         finishedTurn =
-            Turn { id = data.id, status = Complete }
+            encodeStatus Complete
 
         body =
-            Http.jsonBody <| encodeTurn finishedTurn
+            Http.jsonBody <| encodeStatus Complete
 
         request =
             patch endpoint body (Decode.succeed ())
