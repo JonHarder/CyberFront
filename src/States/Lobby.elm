@@ -24,7 +24,7 @@ view config model toMsg =
             uuidToString (getGameId model.game)
     in
     div []
-        [ h3 [] [ text <| "game id: " ++ gameId ]
+        [ h3 [] [ text <| "join link: " ++ "localhost:1234/?gameId=" ++ gameId ]
         , showGame config.svgPath model.game
             |> Html.map toMsg
         ]

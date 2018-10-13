@@ -6,6 +6,7 @@ module Player
         , encodePlayer
         , getPlayer
         , getPlayerId
+        , getPlayerNumber
         , showPlayer
         , yourTurn
         )

@@ -34,6 +34,12 @@ const app = Elm.Main.init({
 })
 
 
+const clearCache = () => {
+    window.sessionStorage.clear()
+    window.location.reload(true)
+}
+
+
 const newTurn = turnData => {
     console.log('NEW TURN EVENT FIRED')
     app.ports.newTurn.send(turnData)
@@ -41,6 +47,7 @@ const newTurn = turnData => {
 
 
 app.ports.savePhaseData.subscribe(savePhaseState)
+app.ports.resetGame.subscribe(clearCache)
 
 
 app.ports.bindToGame.subscribe(function(gameId) {

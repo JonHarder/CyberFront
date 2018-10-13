@@ -1,6 +1,7 @@
-module Unit exposing (Unit, decodeUnits, getUnits)
+module Unit exposing (Unit, decodeUnits, getUnits, unitCoordinates, unitOwner, viewUnit)
 
 import Game exposing (Game, getGameId)
+import Html.Styled exposing (Html, span, text)
 import Http
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (required)
@@ -74,6 +75,21 @@ type Unit
     = Unit UnitInternals
 
 
+viewUnit : Unit -> Html msg
+viewUnit (Unit data) =
+    span [] [ text "unit" ]
+
+
+unitCoordinates : Unit -> Maybe Coord
+unitCoordinates (Unit data) =
+    data.coord
+
+
+unitOwner : Unit -> Owner
+unitOwner (Unit data) =
+    data.owner
+
+
 getUnits : String -> Game -> (Result Http.Error (List Unit) -> msg) -> Cmd msg
 getUnits apiUrl game makeMsg =
     let
@@ -97,7 +113,7 @@ decodeUnit =
         |> required "minRange" Decode.int
         |> required "maxRange" Decode.int
         |> required "speed" Decode.int
-        |> required "coordinate" (Decode.nullable decodeCoord)
+        |> required "coordinates" (Decode.nullable decodeCoord)
         |> required "owner" (Decode.int |> Decode.andThen decodeOwner)
         |> required "currentAP" Decode.int
         |> required "maxAP" Decode.int
