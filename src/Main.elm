@@ -22,7 +22,7 @@ import States.TakingTurn as TakingTurn
 import States.WaitingForTurn as WaitingForTurn
 import Turn exposing (Turn, finishTurn, startTurn, turnEvent)
 import Types exposing (Uuid, uuidToString)
-import Unit exposing (Unit, getUnits, unitCoordinates, unitOwner, viewUnit)
+import Unit exposing (Unit, detailedUnitView, getUnits, unitCoordinates, unitOwner, viewUnit)
 import Url exposing (Url)
 import Url.Parser exposing ((</>), (<?>), Parser, map, parse, s, top)
 import Url.Parser.Query as Query
@@ -62,25 +62,11 @@ type Msg
     | NewTurn (Maybe Int)
     | TurnStarted (Result Http.Error Turn)
     | GotUnits (Result Http.Error (List Unit))
+    | Selected Unit
     | TurnFinished
     | EndTurn
     | NoOp
     | NewGame
-
-
-
-{-
-   type Msg
-       = GotGame (Result Http.Error Game)
-       | GotPlayer (Result Http.Error Player)
-       | NewTurn (Maybe PlayerNumber)
-       | TurnStarted (Result Http.Error Turn)
-       | EndTurn
-       | TurnFinished
-       | GotUnits (Result Http.Error (List Unit))
-       | UrlChanged Url
-       | UrlRequested UrlRequest
--}
 
 
 type ParsedUuid
@@ -211,6 +197,7 @@ update msg model =
                                 { game = updatePlayerNumber data.game playerNumber
                                 , player = data.player
                                 , units = []
+                                , selectedUnit = Nothing
                                 }
                       }
                     , if myTurn then
@@ -282,6 +269,11 @@ update msg model =
             , finishTurn model.config.apiUrl turn.turn (\_ -> TurnFinished)
             )
 
+        ( TakingTurnState data turn, Selected unit ) ->
+            ( { model | state = TakingTurnState (WaitingForTurn.selectUnit data unit) turn }
+            , Cmd.none
+            )
+
         _ ->
             ( model, Cmd.none )
 
@@ -330,7 +322,15 @@ gameView model =
             [ h1 [] [ text "taking a turn" ]
             , h2 [] [ text model.message ]
             , WaitingForTurn.view model.config data (\_ -> NoOp)
-            , h2 [ css [ marginRight (px 30) ] ] (List.map viewUnit unplaced)
+            , h2 [ css [ marginRight (px 30) ] ] (List.map (viewUnit Selected) unplaced)
+            , span []
+                [ case data.selectedUnit of
+                    Just unit ->
+                        detailedUnitView (\_ -> NoOp) unit
+
+                    Nothing ->
+                        text "nothing selected"
+                ]
             , button [ onClick EndTurn, disabled (List.length unplaced > 0) ] [ text "End Turn" ]
             ]
 

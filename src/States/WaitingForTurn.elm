@@ -15,7 +15,13 @@ type alias Model =
     { game : Game
     , player : Player
     , units : List Unit
+    , selectedUnit : Maybe Unit
     }
+
+
+selectUnit : Model -> Unit -> Model
+selectUnit data unit =
+    { data | selectedUnit = Just unit }
 
 
 view : Config -> Model -> (Msg -> msg) -> Html msg
