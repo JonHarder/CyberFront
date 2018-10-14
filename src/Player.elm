@@ -1,12 +1,12 @@
 module Player
     exposing
         ( Player
-        , PlayerNumber
         , createPlayer
         , decodePlayerNumber
         , encodePlayer
         , getPlayer
         , getPlayerId
+        , getPlayerNumber
         , showPlayer
         , yourTurn
         )
@@ -30,12 +30,8 @@ type Player
     = Player PlayerInternals
 
 
-type PlayerNumber
-    = PlayerNumber Int
-
-
-yourTurn : Player -> PlayerNumber -> Bool
-yourTurn (Player p) (PlayerNumber n) =
+yourTurn : Player -> Int -> Bool
+yourTurn (Player p) n =
     p.playerNumber == n
 
 
@@ -78,9 +74,9 @@ requestCreatePlayer apiUrl game =
     Http.post endpoint body decodePlayer
 
 
-decodePlayerNumber : Decoder PlayerNumber
+decodePlayerNumber : Decoder Int
 decodePlayerNumber =
-    Decode.map PlayerNumber Decode.int
+    Decode.int
 
 
 decodePlayer : Decoder Player

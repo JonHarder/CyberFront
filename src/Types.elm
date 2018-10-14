@@ -18,12 +18,8 @@ type Uuid
     = Uuid String
 
 
-type alias PlayerNumber =
-    Int
-
-
 type alias Owner =
-    Maybe PlayerNumber
+    Maybe Int
 
 
 decodeOwner : Int -> Decoder Owner

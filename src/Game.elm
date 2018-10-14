@@ -1,4 +1,4 @@
-module Game exposing (Game, createGame, encodeGame, getGame, getGameId, showGame)
+module Game exposing (Game, createGame, currentPlayer, encodeGame, getGame, getGameId, showGame, updatePlayerNumber)
 
 import Css exposing (marginBottom, px)
 import Html.Styled exposing (Html, div, text)
@@ -14,11 +14,22 @@ import Types exposing (Uuid, decodeUuid, uuidToString)
 type alias GameInternals =
     { id : Uuid
     , map : Map
+    , playerNumber : Int
     }
 
 
 type Game
     = Game GameInternals
+
+
+currentPlayer : Game -> Int
+currentPlayer (Game data) =
+    data.playerNumber
+
+
+updatePlayerNumber : Game -> Int -> Game
+updatePlayerNumber (Game data) playerNumber =
+    Game { data | playerNumber = playerNumber }
 
 
 showGame : String -> Game -> Html msg
@@ -63,6 +74,7 @@ decodeGame =
     Decode.succeed GameInternals
         |> required "id" decodeUuid
         |> required "map" decodeMap
+        |> required "playerNumber" Decode.int
         |> Decode.map Game
 
 

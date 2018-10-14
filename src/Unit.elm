@@ -1,6 +1,10 @@
-module Unit exposing (Unit, decodeUnits, getUnits)
+module Unit exposing (Unit, decodeUnits, detailedUnitView, getUnits, unitCoordinates, unitOwner, viewUnit)
 
+import Css exposing (..)
 import Game exposing (Game, getGameId)
+import Html.Styled exposing (Html, div, li, span, text, ul)
+import Html.Styled.Attributes exposing (css)
+import Html.Styled.Events exposing (onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder, string)
 import Json.Decode.Pipeline exposing (required)
@@ -20,6 +24,19 @@ type UnitType
     = Magic
     | Swords
     | Guns
+
+
+showUnitType : UnitType -> String
+showUnitType unitType =
+    case unitType of
+        Magic ->
+            "magic"
+
+        Swords ->
+            "swords"
+
+        Guns ->
+            "guns"
 
 
 typeDamageModifier : UnitType -> UnitType -> Float
@@ -74,6 +91,37 @@ type Unit
     = Unit UnitInternals
 
 
+detailedUnitView : (Unit -> msg) -> Unit -> Html msg
+detailedUnitView clickUnit (Unit data) =
+    ul []
+        [ li [] [ text ("attack: " ++ String.fromInt data.attack) ]
+        , li [] [ text ("defence: " ++ String.fromInt data.defence) ]
+        , li [] [ text ("health: " ++ String.fromInt data.health) ]
+        , li [] [ text ("type: " ++ showUnitType data.unitType) ]
+        , li [] [ text ("speed: " ++ String.fromInt data.speed) ]
+        , li [] [ text ("ap: " ++ String.fromInt data.currentAP) ]
+        ]
+
+
+viewUnit : (Unit -> msg) -> Unit -> Html msg
+viewUnit clickUnit unit =
+    let
+        (Unit data) =
+            unit
+    in
+    div [ css [ hover [ cursor pointer ] ], onClick (clickUnit unit) ] [ text <| showUnitType data.unitType ++ " unit" ]
+
+
+unitCoordinates : Unit -> Maybe Coord
+unitCoordinates (Unit data) =
+    data.coord
+
+
+unitOwner : Unit -> Owner
+unitOwner (Unit data) =
+    data.owner
+
+
 getUnits : String -> Game -> (Result Http.Error (List Unit) -> msg) -> Cmd msg
 getUnits apiUrl game makeMsg =
     let
@@ -97,7 +145,7 @@ decodeUnit =
         |> required "minRange" Decode.int
         |> required "maxRange" Decode.int
         |> required "speed" Decode.int
-        |> required "coordinate" (Decode.nullable decodeCoord)
+        |> required "coordinates" (Decode.nullable decodeCoord)
         |> required "owner" (Decode.int |> Decode.andThen decodeOwner)
         |> required "currentAP" Decode.int
         |> required "maxAP" Decode.int
