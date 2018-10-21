@@ -108,6 +108,13 @@ fakeConfig =
     , session = Nothing
     }
 
+emptySessionConfig : Config -> Config
+emptySessionConfig config =
+    { apiUrl = config.apiUrl
+    , svgPath = config.svgPath
+    , session = Nothing
+    }
+
 
 init : Value -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
@@ -131,11 +138,19 @@ init flags url key =
                         _ ->
                             "Starting a new game"
 
+                preLobbyConfig =
+                     case ( config.session, urlGameId ) of
+                         ( Just session, Just gameId ) ->
+                             if gameId /= session.gameId then emptySessionConfig config else config
+
+                         _ ->
+                             config
+
                 _ =
                     Debug.log "parsed url" message
             in
             ( { message = message
-              , config = config
+              , config = preLobbyConfig
               , state = PreLoadingState
               , title = "Loading"
               }

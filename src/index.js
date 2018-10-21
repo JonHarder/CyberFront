@@ -3,8 +3,8 @@ const API_URL = "http://localhost:8080"
 
 // Pusher.logToConsole = true
 Pusher.logToConsole = false
-// var pusher = new Pusher('dd888f5a7a55d7eb5059', {
-const pusher = new Pusher('4ef0f34a4e955e13b6a1', {
+var pusher = new Pusher('dd888f5a7a55d7eb5059', {
+// const pusher = new Pusher('4ef0f34a4e955e13b6a1', {
      cluster: 'us2',
      forceTLS: true
 })
