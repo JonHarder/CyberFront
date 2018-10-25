@@ -8,24 +8,23 @@
 * Node 8.11
 * Yarn 1.9.4
 
+### Install dependencies
+```bash
+yarn install
+```
 
 ### Development Server
 
+Start a backend on localhost:8080, then:
 ```bash
-yarn server
-open localhost:8000
-```
-
-### Development Build
-
-```bash
-yarn build
+yarn run dev
+open localhost:1234
 ```
 
 ### Production Build
 
 ```bash
-yarn build-production
+yarn build
 ```
 
 

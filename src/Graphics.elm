@@ -17,7 +17,7 @@ type Sprite
 tileToSprite : Tile -> Coord -> Sprite
 tileToSprite tile coord =
     Sprite
-        { spriteName = getSpriteName tile
+        { spriteName = "tile_" ++ getSpriteName tile
         , coord = coord
         }
 

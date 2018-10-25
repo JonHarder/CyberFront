@@ -108,6 +108,8 @@ fakeConfig =
     , session = Nothing
     }
 
+clearSession r =
+    { r | session = Nothing }
 
 init : Value -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
@@ -131,11 +133,19 @@ init flags url key =
                         _ ->
                             "Starting a new game"
 
+                preLobbyConfig =
+                     case ( config.session, urlGameId ) of
+                         ( Just session, Just gameId ) ->
+                             if gameId /= session.gameId then clearSession config else config
+
+                         _ ->
+                             config
+
                 _ =
                     Debug.log "parsed url" message
             in
             ( { message = message
-              , config = config
+              , config = preLobbyConfig
               , state = PreLoadingState
               , title = "Loading"
               }
